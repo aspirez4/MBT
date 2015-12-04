@@ -518,6 +518,7 @@ namespace MBTrading
             bool bIsNewCandle = this.CandlesList.AddOrUpdatePrice(mdCurrMarketData);
             if (bIsNewCandle)
             {
+                Thread.Sleep(100);
                 this.OffLineCandleIndex++;
                 this.nNeuralNetworkLearnCounter--;
                 this.CandlesList.NeuralNetworSelfAwarenessPredict(0.5);

@@ -1,0 +1,18 @@
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\bin\x64\Debug\MBTrading.exe.config
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\bin\x64\Debug\MBTrading.exe
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\bin\x64\Debug\MBTrading.pdb
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\obj\x64\Debug\ResolveAssemblyReference.cache
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\obj\x64\Debug\MBTrading.exe
+C:\Users\Or\Projects\MBTrading - Strategy 4 - Machine Learning - Candles\MBTrading\obj\x64\Debug\MBTrading.pdb
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MBTrading.exe.config
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MBTrading.exe
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MBTrading.pdb
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Bson.dll
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Driver.dll
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Bson.pdb
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Bson.xml
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Driver.pdb
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\bin\x64\Debug\MongoDB.Driver.xml
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\obj\x64\Debug\ResolveAssemblyReference.cache
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\obj\x64\Debug\MBTrading.exe
+C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\obj\x64\Debug\MBTrading.pdb

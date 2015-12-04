@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AnalysisInput>
+  <Settings>
+    <Setting>
+      <Key>sonar.cs.ignoreHeaderComments</Key>
+      <Value>true</Value>
+    </Setting>
+  </Settings>
+  <Rules>
+    <Rule>
+      <Key>S1186</Key>
+    </Rule>
+    <Rule>
+      <Key>S108</Key>
+    </Rule>
+    <Rule>
+      <Key>S1116</Key>
+    </Rule>
+    <Rule>
+      <Key>S127</Key>
+    </Rule>
+    <Rule>
+      <Key>S1145</Key>
+    </Rule>
+    <Rule>
+      <Key>S1125</Key>
+    </Rule>
+    <Rule>
+      <Key>S1481</Key>
+    </Rule>
+    <Rule>
+      <Key>S101</Key>
+      <Parameters>
+        <Parameter>
+          <Key>format</Key>
+          <Value>^(?:[A-HJ-Z][a-zA-Z0-9]+|I[a-z0-9][a-zA-Z0-9]*)$</Value>
+        </Parameter>
+      </Parameters>
+    </Rule>
+    <Rule>
+      <Key>S1067</Key>
+      <Parameters>
+        <Parameter>
+          <Key>max</Key>
+          <Value>3</Value>
+        </Parameter>
+      </Parameters>
+    </Rule>
+    <Rule>
+      <Key>S100</Key>
+      <Parameters>
+        <Parameter>
+          <Key>format</Key>
+          <Value>^[A-Z][a-zA-Z0-9]+$</Value>
+        </Parameter>
+      </Parameters>
+    </Rule>
+    <Rule>
+      <Key>S1479</Key>
+      <Parameters>
+        <Parameter>
+          <Key>maximum</Key>
+          <Value>30</Value>
+        </Parameter>
+      </Parameters>
+    </Rule>
+    <Rule>
+      <Key>S107</Key>
+      <Parameters>
+        <Parameter>
+          <Key>max</Key>
+          <Value>7</Value>
+        </Parameter>
+      </Parameters>
+    </Rule>
+  </Rules>
+  <Files>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Console\Consts.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Console\Loger.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Console\Program.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Console\UI.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\Candle.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\CandlesList.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\Integer.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\MarketData.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\MarketTime.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\Order.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Entities\Share.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Properties\AssemblyInfo.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Utils\FixGatewayUtils.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Utils\Mail.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Utils\QuoteUtils.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Utils\QuoteUtils_Historical.cs</File>
+    <File>C:\Users\Or\Projects\MBTrading - Strategy 6\MBTrading\Utils\Time.cs</File>
+  </Files>
+</AnalysisInput>

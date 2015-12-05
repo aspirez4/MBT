@@ -479,7 +479,24 @@ namespace MBTrading
 
 
 
+        public double FindTheLastKnee(int nNumOfCandlesToStartBack)
+        {
+            double dStopLoss = double.MaxValue;
 
+            bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
+            for (int nWMADirInex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirInex > 0; nWMADirInex--)
+            {
+                if ((!bWMADir) && (this.CandlesList.Candles[nWMADirInex].WMADirection))
+                    break;
+
+                if (dStopLoss > this.CandlesList.Candles[nWMADirInex].Low)
+                    dStopLoss = this.CandlesList.Candles[nWMADirInex].Low;
+
+                bWMADir = this.CandlesList.Candles[nWMADirInex].WMADirection;
+            }
+
+            return (dStopLoss - 5 * this.PipsUnit);
+        }
         public double CalcStopLoss()
         {
             double dStopLoss = double.MaxValue;
@@ -492,7 +509,7 @@ namespace MBTrading
                 bWMADir = this.CandlesList.Candles[nWMADirInex].WMADirection;
             }
 
-            return (dStopLoss - 50 * this.PipsUnit);
+            return (dStopLoss - 5 * this.PipsUnit);
         }
         public void OffLineActivate()
         {
@@ -553,9 +570,14 @@ namespace MBTrading
                 Candle cBeforePreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 2];
                 Candle cPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 1];
 
+                if ((this.OffLineIsPosition) && (!cMegaPreviousCandle.WMADirection) && (!cBeforePreviousCandle.WMADirection))
+                {
+                    this.StopLoss = this.FindTheLastKnee(1);
+                }
+
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
-                    (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) && 
-                    (this.CandlesList.TDI_Green <  this.CandlesList.TDI_Mid))
+                    (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
+                    (cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
                 {
                     if (!this.OffLineIsPosition)
                     {
@@ -567,8 +589,8 @@ namespace MBTrading
                 // Sell conditions
                 bool bCrossSL = (this.CandlesList.CurrPrice <= this.StopLoss);
                 bool bTDISell = ((cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Red) &&
-                    (cBeforePreviousCandle.EndTDI_Green > cBeforePreviousCandle.EndTDI_Red) &&
-                    (this.CandlesList.TDI_Green > this.CandlesList.TDI_Mid));
+                                 (cBeforePreviousCandle.EndTDI_Green > cBeforePreviousCandle.EndTDI_Red) &&
+                                 (cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Mid));
 
                 // Sell
                 // if ((OffLineIsPosition && this.bActiveLong) && ((bCrossMA_Soft) || (bCrossMA_Stif) || (bCrossMA_Stop) || (bCrossSL)))
@@ -603,7 +625,6 @@ namespace MBTrading
                 }
             }
             #endregion
-
         }
         public void OffLineBuy(double dStopLoss, bool bStrategy)
         {
@@ -630,7 +651,7 @@ namespace MBTrading
 				
                 this.PositionQuantity = Consts.QUANTITY;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("1;{0};{1};{2}\n", this.Symbol, this.BuyPrice, this.OffLineCandleIndex));
 
 
@@ -682,7 +703,7 @@ namespace MBTrading
             this.BuyPrice = 0;
             this.StopLoss = 0;
             this.PositionQuantity = 0;
-            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
 		public void OffLinePartialSell(bool bLong, double dPartialPrcentage)
@@ -701,7 +722,7 @@ namespace MBTrading
             { this.TotalProfit += dPL; }
 			this.bWasPartiald = true;
             this.PositionQuantity -= dSoldCount;
-            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
         public void PrintOutPrediction()
@@ -711,7 +732,7 @@ namespace MBTrading
                 string strLable1 = this.CandlesList.NNStrategy.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy;
                 string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy.ToString();
 
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("2;{0};{1};{2}\n", this.Symbol, strLable2, this.OffLineCandleIndex));
             }
         }

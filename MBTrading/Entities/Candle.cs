@@ -26,6 +26,7 @@ namespace MBTrading
         public double   EndEMA;
         public double   EndTDI_Green;
         public double   EndTDI_Red;
+        public double   EndTDI_Mid;
         public bool     WMADirection;
         public bool     EMADirection;
         public double   StartWMA;

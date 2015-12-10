@@ -87,6 +87,16 @@
     <Compile Include="Console\Consts.cs" />
     <Compile Include="Entities\CandlesList.cs" />
     <Compile Include="Console\Loger.cs" />
+    <Compile Include="Entities\Indicators\Awesome.cs" />
+    <Compile Include="Entities\Indicators\EMA.cs" />
+    <Compile Include="Entities\Indicators\Indicator.cs" />
+    <Compile Include="Entities\Indicators\RSI.cs" />
+    <Compile Include="Entities\Indicators\SMA.cs" />
+    <Compile Include="Entities\Indicators\Stochastic.cs" />
+    <Compile Include="Entities\Indicators\StochasticRSI.cs" />
+    <Compile Include="Entities\Indicators\TDI.cs" />
+    <Compile Include="Entities\Indicators\WMA.cs" />
+    <Compile Include="Entities\Indicators\ZigZag.cs" />
     <Compile Include="Entities\Integer.cs" />
     <Compile Include="Entities\MarketData.cs" />
     <Compile Include="Entities\MarketTime.cs" />

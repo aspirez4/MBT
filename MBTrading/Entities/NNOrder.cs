@@ -57,12 +57,12 @@ namespace MBTrading.Entities
             // This section waites from the moment that MA's cross each other, to the moment that WMA direction is changing UP again but still bellow the EMA
             // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
             bool bCrossMA = ((this.ParentShare.CandlesList.PrevCandle.StartWMA - this.ParentShare.CandlesList.PrevCandle.StartEMA > this.ParentShare.PipsUnit * this.ParentShare.D_MilitraizedZone) &&
-                             (this.ParentShare.CandlesList.WMA - this.ParentShare.CandlesList.EMA <= this.ParentShare.PipsUnit * this.ParentShare.D_MilitraizedZone));
+                             (this.ParentShare.CandlesList.WMA.Value - this.ParentShare.CandlesList.EMA.Value <= this.ParentShare.PipsUnit * this.ParentShare.D_MilitraizedZone));
 
             // Set the indicator to True wen => Cross occurd || already set it befor to True
             this.CrossIndicator = (bCrossMA) || (this.CrossIndicator);
 
-            if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.ParentShare.CandlesList.EMA > this.ParentShare.CandlesList.WMA)
+            if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.ParentShare.CandlesList.EMA.Value > this.ParentShare.CandlesList.WMA.Value)
             {
                 this.Stop = Math.Min(cBeforePreviousCandle.Low, cPreviousCandle.Low) - (this.ParentShare.PipsUnit * 2);
                 this.CrossIndicator = false;

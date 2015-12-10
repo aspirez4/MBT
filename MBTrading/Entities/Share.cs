@@ -266,8 +266,8 @@ namespace MBTrading
 
                 #region Strategy - 'StrongMin' First condition
                 // First condition of strategy happened - 'StrongMin'
-                if ((cPreviousCandle.Low < this.CandlesList.SMA_LowerBollinger) &&
-                    (cPreviousCandle.Open - cPreviousCandle.Close) > this.CandlesList.CandleSizeAVG)
+                if ((cPreviousCandle.Low < this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Open - cPreviousCandle.Close) > this.CandlesList.SMA.CandleSizeAVG)
                 {
                     this.StrongMinLow = cPreviousCandle.Low;
                     this.CandleAfterStrongMinIndex = this.CandleIndex;
@@ -285,11 +285,11 @@ namespace MBTrading
                     (!this.IsBuyOrderSentOrExecuted) &&
                     (this.StartReversalIndex == 0) &&
                     (!this.bDidFirstConditionHappened) &&
-                    (cPreviousCandle.Low < this.CandlesList.SMA_LowerBollinger) && 
-                    (cPreviousCandle.Close > this.CandlesList.SMA_LowerBollinger) && 
-                    (cPreviousCandle.Open > this.CandlesList.SMA_LowerBollinger) && 
+                    (cPreviousCandle.Low < this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Close > this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Open > this.CandlesList.SMA.LowerBollinger) && 
                     (cPreviousCandle.Close > cPreviousCandle.Open) && 
-                    (cPreviousCandle.StartWMA < this.CandlesList.WMA))
+                    (cPreviousCandle.StartWMA < this.CandlesList.WMA.Value))
                 {
                     ///////////////////////////////////////////////////////////////////////////////
                     /////////////////////////////////LIVE-ACTION!!!////////////////////////////////
@@ -310,13 +310,13 @@ namespace MBTrading
                 #region Update Stoploss
                 // This section waites from the moment that MA's cross each other, to the moment that WMA direction is changing UP again but still bellow the EMA
                 // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
-                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > (this.PipsUnit * 3)) && (this.CandlesList.WMA - this.CandlesList.EMA <= (this.PipsUnit * 3)));
+                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > (this.PipsUnit * 3)) && (this.CandlesList.WMA.Value - this.CandlesList.EMA.Value <= (this.PipsUnit * 3)));
 
                 // Set the indicator to True wen => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.IsPosition)) || (this.CrossIndicator));
 
                 // If cross occourd (Both on STRATEGY position or in REVERSAL position), update the stoploss in chance of little reversal
-                if ((this.IsPosition) && (this.CrossIndicator) && (!cBeforePreviousCandle.WMADirection) && (cPreviousCandle.WMADirection) && (this.CandlesList.EMA > this.CandlesList.WMA))
+                if ((this.IsPosition) && (this.CrossIndicator) && (!cBeforePreviousCandle.WMADirection) && (cPreviousCandle.WMADirection) && (this.CandlesList.EMA.Value > this.CandlesList.WMA.Value))
                 {
                     ///////////////////////////////////////////////////////////////////////////////
                     /////////////////////////////////LIVE-ACTION!!!////////////////////////////////
@@ -603,12 +603,12 @@ namespace MBTrading
                 #region Update stoploss
                 // This section waites from the moment that MA's cross each other, to the moment that WMA direction is changing UP again but still bellow the EMA
                 // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
-                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > this.PipsUnit * this.D_MilitraizedZone) && (this.CandlesList.WMA - this.CandlesList.EMA <= this.PipsUnit * this.D_MilitraizedZone));
+                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > this.PipsUnit * this.D_MilitraizedZone) && (this.CandlesList.WMA.Value - this.CandlesList.EMA.Value <= this.PipsUnit * this.D_MilitraizedZone));
 
                 // Set the indicator to True wen => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.OffLineIsPosition)) || (this.CrossIndicator));
 
-                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA > this.CandlesList.WMA)
+                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
                 {
                     this.StopLoss = Math.Min(cBeforePreviousCandle.Low, cPreviousCandle.Low) - (this.PipsUnit * 2);
                     this.CrossIndicator = false;

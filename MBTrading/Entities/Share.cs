@@ -554,8 +554,8 @@ namespace MBTrading
                 Candle cPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 1];
 
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
-                    (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) && 
-                    (this.CandlesList.TDI_Green <  this.CandlesList.TDI_Mid))
+                    (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
+                    (cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
                 {
                     if (!this.OffLineIsPosition)
                     {
@@ -568,7 +568,7 @@ namespace MBTrading
                 bool bCrossSL = (this.CandlesList.CurrPrice <= this.StopLoss);
                 bool bTDISell = ((cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Red) &&
                     (cBeforePreviousCandle.EndTDI_Green > cBeforePreviousCandle.EndTDI_Red) &&
-                    (this.CandlesList.TDI_Green > this.CandlesList.TDI_Mid));
+                    (cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Mid));
 
                 // Sell
                 // if ((OffLineIsPosition && this.bActiveLong) && ((bCrossMA_Soft) || (bCrossMA_Stif) || (bCrossMA_Stop) || (bCrossSL)))
@@ -603,7 +603,6 @@ namespace MBTrading
                 }
             }
             #endregion
-
         }
         public void OffLineBuy(double dStopLoss, bool bStrategy)
         {

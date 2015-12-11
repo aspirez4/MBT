@@ -264,6 +264,7 @@ namespace MBTrading
                 this.LastCandle.EndEMA = this.EMA;
                 this.LastCandle.EndTDI_Green = this.TDI_Green;
                 this.LastCandle.EndTDI_Red = this.TDI_Red;
+                this.LastCandle.EndTDI_Mid = this.TDI_Mid;
                 this.LastCandle.ExtraList.Add(this.SMA); 
                 this.LastCandle.ExtraList.Add(this.SMA_LowerBollinger);
                 this.LastCandle.ExtraList.Add(this.SMA_UpperBollinger);

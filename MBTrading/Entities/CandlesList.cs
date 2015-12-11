@@ -40,6 +40,7 @@ namespace MBTrading
         public WMA              WMA;
         public Awesome          Awesome;
         public TDI              TDI;
+        public ZigZag           ZigZag;
 
         // Neural Network
         public int P, N = 0;
@@ -78,6 +79,7 @@ namespace MBTrading
             WMA             = new WMA();
             Awesome         = new Awesome();
             TDI             = new TDI();
+            ZigZag          = new ZigZag();
             RSI.RegisterIndicator(this);
             StochasticRSI.RegisterIndicator(this);
             Stochastic.RegisterIndicator(this);
@@ -86,6 +88,7 @@ namespace MBTrading
             WMA.RegisterIndicator(this);
             Awesome.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
+            ZigZag.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 
             this.IndicatorsList.ForEach(I => I.NewIndicatorValue());

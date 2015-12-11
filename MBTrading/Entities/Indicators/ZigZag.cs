@@ -7,30 +7,32 @@ namespace MBTrading.Entities.Indicators
 {
     class ZigZag : Indicator
     {
+        public CandlesList ParentCandleList = null;
+
         public void RegisterIndicator(CandlesList clParentCandlesList)
         {
-            throw new NotImplementedException();
+            // Register inicator
+            this.ParentCandleList = clParentCandlesList;
+            clParentCandlesList.IndicatorsList.Add(this);
+
+            // Initialize indicator list
         }
 
         public void NewIndicatorValue()
         {
-            throw new NotImplementedException();
         }
 
         public void UpdateIndicatorValue()
         {
-            throw new NotImplementedException();
         }
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
-            throw new NotImplementedException();
         }
 
 
         public void CompleteInitializationActions()
         {
-            throw new NotImplementedException();
         }
     }
 }

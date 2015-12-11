@@ -266,8 +266,8 @@ namespace MBTrading
 
                 #region Strategy - 'StrongMin' First condition
                 // First condition of strategy happened - 'StrongMin'
-                if ((cPreviousCandle.Low < this.CandlesList.SMA_LowerBollinger) &&
-                    (cPreviousCandle.Open - cPreviousCandle.Close) > this.CandlesList.CandleSizeAVG)
+                if ((cPreviousCandle.Low < this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Open - cPreviousCandle.Close) > this.CandlesList.SMA.CandleSizeAVG)
                 {
                     this.StrongMinLow = cPreviousCandle.Low;
                     this.CandleAfterStrongMinIndex = this.CandleIndex;
@@ -285,11 +285,11 @@ namespace MBTrading
                     (!this.IsBuyOrderSentOrExecuted) &&
                     (this.StartReversalIndex == 0) &&
                     (!this.bDidFirstConditionHappened) &&
-                    (cPreviousCandle.Low < this.CandlesList.SMA_LowerBollinger) && 
-                    (cPreviousCandle.Close > this.CandlesList.SMA_LowerBollinger) && 
-                    (cPreviousCandle.Open > this.CandlesList.SMA_LowerBollinger) && 
+                    (cPreviousCandle.Low < this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Close > this.CandlesList.SMA.LowerBollinger) &&
+                    (cPreviousCandle.Open > this.CandlesList.SMA.LowerBollinger) && 
                     (cPreviousCandle.Close > cPreviousCandle.Open) && 
-                    (cPreviousCandle.StartWMA < this.CandlesList.WMA))
+                    (cPreviousCandle.StartWMA < this.CandlesList.WMA.Value))
                 {
                     ///////////////////////////////////////////////////////////////////////////////
                     /////////////////////////////////LIVE-ACTION!!!////////////////////////////////
@@ -310,13 +310,13 @@ namespace MBTrading
                 #region Update Stoploss
                 // This section waites from the moment that MA's cross each other, to the moment that WMA direction is changing UP again but still bellow the EMA
                 // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
-                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > (this.PipsUnit * 3)) && (this.CandlesList.WMA - this.CandlesList.EMA <= (this.PipsUnit * 3)));
+                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > (this.PipsUnit * 3)) && (this.CandlesList.WMA.Value - this.CandlesList.EMA.Value <= (this.PipsUnit * 3)));
 
                 // Set the indicator to True wen => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.IsPosition)) || (this.CrossIndicator));
 
                 // If cross occourd (Both on STRATEGY position or in REVERSAL position), update the stoploss in chance of little reversal
-                if ((this.IsPosition) && (this.CrossIndicator) && (!cBeforePreviousCandle.WMADirection) && (cPreviousCandle.WMADirection) && (this.CandlesList.EMA > this.CandlesList.WMA))
+                if ((this.IsPosition) && (this.CrossIndicator) && (!cBeforePreviousCandle.WMADirection) && (cPreviousCandle.WMADirection) && (this.CandlesList.EMA.Value > this.CandlesList.WMA.Value))
                 {
                     ///////////////////////////////////////////////////////////////////////////////
                     /////////////////////////////////LIVE-ACTION!!!////////////////////////////////
@@ -479,7 +479,24 @@ namespace MBTrading
 
 
 
+        public double FindTheLastKnee(int nNumOfCandlesToStartBack)
+        {
+            double dStopLoss = double.MaxValue;
 
+            bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
+            for (int nWMADirInex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirInex > 0; nWMADirInex--)
+            {
+                if ((!bWMADir) && (this.CandlesList.Candles[nWMADirInex].WMADirection))
+                    break;
+
+                if (dStopLoss > this.CandlesList.Candles[nWMADirInex].Low)
+                    dStopLoss = this.CandlesList.Candles[nWMADirInex].Low;
+
+                bWMADir = this.CandlesList.Candles[nWMADirInex].WMADirection;
+            }
+
+            return (dStopLoss - 5 * this.PipsUnit);
+        }
         public double CalcStopLoss()
         {
             double dStopLoss = double.MaxValue;
@@ -492,7 +509,7 @@ namespace MBTrading
                 bWMADir = this.CandlesList.Candles[nWMADirInex].WMADirection;
             }
 
-            return (dStopLoss - 50 * this.PipsUnit);
+            return (dStopLoss - 5 * this.PipsUnit);
         }
         public void OffLineActivate()
         {
@@ -553,6 +570,11 @@ namespace MBTrading
                 Candle cBeforePreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 2];
                 Candle cPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 1];
 
+                if ((this.OffLineIsPosition) && (!cMegaPreviousCandle.WMADirection) && (!cBeforePreviousCandle.WMADirection))
+                {
+                    this.StopLoss = this.FindTheLastKnee(1);
+                }
+
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
                     (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
                     (cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
@@ -567,8 +589,8 @@ namespace MBTrading
                 // Sell conditions
                 bool bCrossSL = (this.CandlesList.CurrPrice <= this.StopLoss);
                 bool bTDISell = ((cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Red) &&
-                    (cBeforePreviousCandle.EndTDI_Green > cBeforePreviousCandle.EndTDI_Red) &&
-                    (cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Mid));
+                                 (cBeforePreviousCandle.EndTDI_Green > cBeforePreviousCandle.EndTDI_Red) &&
+                                 (cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Mid));
 
                 // Sell
                 // if ((OffLineIsPosition && this.bActiveLong) && ((bCrossMA_Soft) || (bCrossMA_Stif) || (bCrossMA_Stop) || (bCrossSL)))
@@ -581,12 +603,12 @@ namespace MBTrading
                 #region Update stoploss
                 // This section waites from the moment that MA's cross each other, to the moment that WMA direction is changing UP again but still bellow the EMA
                 // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
-                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > this.PipsUnit * this.D_MilitraizedZone) && (this.CandlesList.WMA - this.CandlesList.EMA <= this.PipsUnit * this.D_MilitraizedZone));
+                bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > this.PipsUnit * this.D_MilitraizedZone) && (this.CandlesList.WMA.Value - this.CandlesList.EMA.Value <= this.PipsUnit * this.D_MilitraizedZone));
 
                 // Set the indicator to True wen => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.OffLineIsPosition)) || (this.CrossIndicator));
 
-                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA > this.CandlesList.WMA)
+                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
                 {
                     this.StopLoss = Math.Min(cBeforePreviousCandle.Low, cPreviousCandle.Low) - (this.PipsUnit * 2);
                     this.CrossIndicator = false;
@@ -629,7 +651,7 @@ namespace MBTrading
 				
                 this.PositionQuantity = Consts.QUANTITY;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("1;{0};{1};{2}\n", this.Symbol, this.BuyPrice, this.OffLineCandleIndex));
 
 
@@ -681,7 +703,7 @@ namespace MBTrading
             this.BuyPrice = 0;
             this.StopLoss = 0;
             this.PositionQuantity = 0;
-            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
 		public void OffLinePartialSell(bool bLong, double dPartialPrcentage)
@@ -700,7 +722,7 @@ namespace MBTrading
             { this.TotalProfit += dPL; }
 			this.bWasPartiald = true;
             this.PositionQuantity -= dSoldCount;
-            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
         public void PrintOutPrediction()
@@ -710,7 +732,7 @@ namespace MBTrading
                 string strLable1 = this.CandlesList.NNStrategy.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy;
                 string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy.ToString();
 
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\Graph\\WindowsFormsApplication1\\bin\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("2;{0};{1};{2}\n", this.Symbol, strLable2, this.OffLineCandleIndex));
             }
         }

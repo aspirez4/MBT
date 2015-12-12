@@ -171,19 +171,6 @@ namespace MBTrading
             cCandleList = new CandlesList(lstIntList, sCurrShare, bIsPrimary);
             cCandleList.LastCandle = lstIntList[cCandleList.Count - 1];
 
-            for (int nIndex = 0; nIndex < Consts.NUM_OF_CANDLES; nIndex++)
-            {
-                MarketTime mt = dtStartTime.ToMarketTime();
-                MarketData m1 = new MarketData(MarketDataType.Volume, 0, dicInitDictionary[strSymbol], mt);
-                MarketData m2 = new MarketData(MarketDataType.Volume, 0, dicInitDictionary[strSymbol], mt);
-                MarketData m3 = new MarketData(MarketDataType.Volume, 0, dicInitDictionary[strSymbol], mt);
-                MarketData m4 = new MarketData(MarketDataType.Volume, 0, dicInitDictionary[strSymbol], mt);
-                cCandleList.AddOrUpdatePrice(m1);
-                cCandleList.AddOrUpdatePrice(m2);
-                cCandleList.AddOrUpdatePrice(m3);
-                cCandleList.AddOrUpdatePrice(m4);
-            }
-            
             return (cCandleList);
         }
     }

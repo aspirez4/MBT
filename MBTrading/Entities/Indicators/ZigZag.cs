@@ -6,13 +6,33 @@ using System.IO;
 
 namespace MBTrading.Entities.Indicators
 {
+    public delegate void ZigZagHandler(int nIndex, double dLow);
+
     public class ZigZag : Indicator
     {
-        public CandlesList ParentCandleList = null;
+        public event ZigZagHandler ZigZagLowEvent = delegate {};
+
+        public CandlesList  ParentCandleList = null;
         public List<Candle> zzSourceList;
         public List<double> ZigZagMap;
         public List<double> HighMap;
         public List<double> LowMap;
+        
+        int     i               = 0;
+        int     counterZ        = 0;
+        int     nWhatLookFor    = 0;
+        int     nShift          = 0;
+        int     back            = 0;
+        int     nLastHighIndex  = 0;
+        int     nLastLowIndex   = 0;
+        double  dValue          = 0;
+        double  dRes            = 0;
+        double  dCurrLow        = 0;
+        double  dCurrHigh       = 0;
+        double  dLastHigh       = 0;
+        double  dLastLow        = 0;
+
+        public  int Length              = 500;
         private int nZigZagCalculationStartIndex;
         private int nUserExtDepth       = 12;
         private int nUserExtDeviation   = 5;
@@ -37,7 +57,7 @@ namespace MBTrading.Entities.Indicators
 
             // Initialize indicator list
             int nStopIndex = Math.Max(0, clParentCandlesList.CountDec - Consts.esMA_PARAMETERS_LENGTH);
-            for (int nCounter = 0; nCounter < 500; nCounter++)
+            for (int nCounter = 0; nCounter < Length; nCounter++)
             {
                 this.zzSourceList.Add(clParentCandlesList.Candles[clParentCandlesList.CountDec]);
                 this.ZigZagMap.Add(0);
@@ -49,27 +69,27 @@ namespace MBTrading.Entities.Indicators
             this.dDeviation = this.nUserExtDeviation * (this.ParentCandleList.ParentShare.PipsUnit / 10);
         }
 
-        public void NewIndicatorValue()
-        {
-            UpdateIndicatorValue();
-        }
-
         public void UpdateIndicatorValue()
         {
-            int i               = 0;
-	        int counterZ        = 0;
-            int nWhatLookFor    = 0;
-	        int nShift          = 0;
-            int back            = 0; 
-            int nLastHighIndex  = 0; 
-            int nLastLowIndex   = 0;
-	        double dValue       = 0; 
-            double dRes         = 0;
-	        double dCurrLow     = 0; 
-            double dCurrHigh    = 0;
-            double dLastHigh    = 0; 
-            double dLastLow     = 0;
-	
+            //UpdateIndicatorValue();
+        }
+
+        public void NewIndicatorValue()
+        {
+            i               = 0;
+            counterZ        = 0;
+            nWhatLookFor    = 0;
+            nShift          = 0;
+            back            = 0;
+            nLastHighIndex  = 0;
+            nLastLowIndex   = 0;
+            dValue          = 0;
+            dRes            = 0;
+            dCurrLow        = 0;
+            dCurrHigh       = 0;
+            dLastHigh       = 0;
+            dLastLow        = 0;
+
 	        // ZigZag was already counted before
             if (this.nZigZagCalculationStartIndex != nUserExtDepth)
             {
@@ -226,6 +246,7 @@ namespace MBTrading.Entities.Indicators
                             nLastLowIndex = nShift;
                             ZigZagMap[nShift] = dLastLow;
                             nWhatLookFor = 1;
+                            ZigZagLowEvent(nShift, dLastLow);
                         }
                         break;
                     }
@@ -249,6 +270,7 @@ namespace MBTrading.Entities.Indicators
                                 nWhatLookFor = 1;
                                 ZigZagMap[nShift] = dLastLow;
                                 dRes = 1;
+                                ZigZagLowEvent(nShift, dLastLow);
                             }
                         }
                         break;
@@ -262,6 +284,7 @@ namespace MBTrading.Entities.Indicators
                             dLastLow = LowMap[nShift];
                             ZigZagMap[nShift] = dLastLow;
                             dRes = 1;
+                            ZigZagLowEvent(nShift, dLastLow);
                         }
 
                         if (HighMap[nShift] != 0 && LowMap[nShift] == 0)

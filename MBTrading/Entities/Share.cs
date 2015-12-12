@@ -577,7 +577,8 @@ namespace MBTrading
 
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
                     (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
-                    (cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
+                    //(cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
+                    (cPreviousCandle.EndTDI_Green < (cPreviousCandle.EndTDI_Upper - cPreviousCandle.EndTDI_Lower) * 0.5 + cPreviousCandle.EndTDI_Lower))
                 {
                     if (!this.OffLineIsPosition)
                     {
@@ -651,6 +652,7 @@ namespace MBTrading
 				
                 this.PositionQuantity = Consts.QUANTITY;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
+                this.CandlesList.ZigZag.ZigZagLowEvent += ZigZagLowEvent;
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("1;{0};{1};{2}\n", this.Symbol, this.BuyPrice, this.OffLineCandleIndex));
 
@@ -703,9 +705,11 @@ namespace MBTrading
             this.BuyPrice = 0;
             this.StopLoss = 0;
             this.PositionQuantity = 0;
+            this.CandlesList.ZigZag.ZigZagLowEvent -= ZigZagLowEvent;
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
+
 		public void OffLinePartialSell(bool bLong, double dPartialPrcentage)
         {
             // SELLLLLLLLLL
@@ -734,6 +738,23 @@ namespace MBTrading
 
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("2;{0};{1};{2}\n", this.Symbol, strLable2, this.OffLineCandleIndex));
+            }
+        }
+        public void ZigZagLowEvent(int nIndex, double dLastLow)
+        {
+            if (this.IsPosition)
+            {
+                if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                {
+                    this.StopLoss = dLastLow;
+                }
+            }
+            else if (this.OffLineIsPosition)
+            {
+                if ((this.StopLoss < dLastLow) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                {
+                    this.StopLoss = dLastLow;
+                }
             }
         }
     }

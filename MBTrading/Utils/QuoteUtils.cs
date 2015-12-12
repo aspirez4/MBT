@@ -58,15 +58,27 @@ namespace MBTrading
             if (Consts.WorkOffLineMode)
             {
                 string strQuotesFolder = "C:\\Users\\Or\\Projects\\Quotes\\Processed\\";
-                IEnumerator i = Program.SharesList.Values.GetEnumerator();
-                i.MoveNext();
-                Share sShare = (Share)i.Current;
                 
-                for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length; nIndex++)
+
+                for (int nIndex = 0; nIndex < /* Directory.GetFiles(strQuotesFolder).Length */ 100; nIndex++)
                 {
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
+                    bool bAllEmpty = false;
+
+                    while (!bAllEmpty)
+                    {
+                        bAllEmpty = true;
+                        foreach (Share sCurrShare in Program.SharesList.Values)
+                        {
+                            if (sCurrShare.PricesQueue.Count != 0)
+                            {
+                                bAllEmpty = false;
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

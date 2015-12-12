@@ -53,7 +53,7 @@ namespace MBTrading
 
 
             // Starting UI
-            new Thread(UI.MainUI).Start();
+            UI.MainUI();
         }
         public static void ManageProgram()
         {

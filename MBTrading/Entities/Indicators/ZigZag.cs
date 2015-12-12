@@ -303,10 +303,10 @@ namespace MBTrading.Entities.Indicators
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
-            if (this.ParentCandleList.ParentShare.OffLineCandleIndex - 500 > 0)
+            if (this.ParentCandleList.ParentShare.OffLineCandleIndex - 100 > 0)
             {
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-                    string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
+                    string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 100));
             }
 
             this.zzSourceList.RemoveAt(0);

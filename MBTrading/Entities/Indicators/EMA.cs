@@ -69,7 +69,6 @@ namespace MBTrading.Entities.Indicators
         {
             this.Value = (this.ParentCandleList.CurrPrice - this.Prev) * this.EMAMultiplier + this.Prev;
             this.Direction = this.Value > this.Prev;
-
             this.Derivative = this.Value / this.Prev;
             this.DerivativeDierection = this.Derivative >= this.PrevDerivative;
         }

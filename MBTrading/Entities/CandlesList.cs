@@ -33,12 +33,12 @@ namespace MBTrading
         // Indicators - Previous indicators refers to the last bit of the previous candle
         public List<Indicator> IndicatorsList = new List<Indicator>();
         public RSI              RSI;
-        public StochasticRSI    StochasticRSI;
-        public Stochastic       Stochastic;
+      //public StochasticRSI    StochasticRSI;
+      //public Stochastic       Stochastic;
         public SMA              SMA;
         public EMA              EMA;
         public WMA              WMA;
-        public Awesome          Awesome;
+      //public Awesome          Awesome;
         public TDI              TDI;
         public ZigZag           ZigZag;
 
@@ -72,21 +72,15 @@ namespace MBTrading
 
             // Register Indicators // RSI > StochasticRSI > Stochastic > SMA > EMA > WMA > Awesome > TDI
             RSI             = new RSI();
-            StochasticRSI   = new StochasticRSI();
-            Stochastic      = new Stochastic();
             SMA             = new SMA();
             EMA             = new EMA();
             WMA             = new WMA();
-            Awesome         = new Awesome();
             TDI             = new TDI();
             ZigZag          = new ZigZag();
             RSI.RegisterIndicator(this);
-            StochasticRSI.RegisterIndicator(this);
-            Stochastic.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);
             WMA.RegisterIndicator(this);
-            Awesome.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
             ZigZag.RegisterIndicator(this);
 
@@ -126,13 +120,15 @@ namespace MBTrading
                 this.LastCandle.EndTDI_Green = this.TDI.TDI_Green;
                 this.LastCandle.EndTDI_Red = this.TDI.TDI_Red;
                 this.LastCandle.EndTDI_Mid = this.TDI.TDI_Mid;
+                this.LastCandle.EndTDI_Upper = this.TDI.TDI_Upper;
+                this.LastCandle.EndTDI_Lower = this.TDI.TDI_Lower;
                 this.LastCandle.ExtraList.Add(this.SMA.Value);
                 this.LastCandle.ExtraList.Add(this.SMA.LowerBollinger);
                 this.LastCandle.ExtraList.Add(this.SMA.UpperBollinger);
                 this.LastCandle.ExtraList.Add(this.RSI.Value);
-                this.LastCandle.ExtraList.Add(this.Stochastic.Value);
-                this.LastCandle.ExtraList.Add(this.StochasticRSI.Value);
-                this.LastCandle.ExtraList.Add(this.Awesome.Value);
+                //this.LastCandle.ExtraList.Add(this.Stochastic.Value);
+                //this.LastCandle.ExtraList.Add(this.StochasticRSI.Value);
+                //this.LastCandle.ExtraList.Add(this.Awesome.Value);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Green);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Red);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Upper);

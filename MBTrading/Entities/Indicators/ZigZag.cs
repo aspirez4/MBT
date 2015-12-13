@@ -2,12 +2,35 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace MBTrading.Entities.Indicators
 {
-    class ZigZag : Indicator
+    public class ZigZag : Indicator
     {
         public CandlesList ParentCandleList = null;
+<<<<<<< HEAD
+=======
+        public List<Candle> zzSourceList;
+        public List<double> ZigZagMap;
+        public List<double> HighMap;
+        public List<double> LowMap;
+        private int nZigZagCalculationStartIndex;
+        private int nUserExtDepth       = 12;
+        private int nUserExtDeviation   = 5;
+        private int nUserExtBackstep    = 3;
+        private int nLevel              = 3; // recounting depth
+        private double dDeviation;           // deviation in points
+
+
+        public ZigZag()
+        {
+            this.zzSourceList = new List<Candle>();
+            this.ZigZagMap = new List<double>();
+            this.HighMap = new List<double>();
+            this.LowMap = new List<double>();        
+        }
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
 
         public void RegisterIndicator(CandlesList clParentCandlesList)
         {
@@ -16,23 +39,331 @@ namespace MBTrading.Entities.Indicators
             clParentCandlesList.IndicatorsList.Add(this);
 
             // Initialize indicator list
+<<<<<<< HEAD
+=======
+            int nStopIndex = Math.Max(0, clParentCandlesList.CountDec - Consts.esMA_PARAMETERS_LENGTH);
+            for (int nCounter = 0; nCounter < 500; nCounter++)
+            {
+                this.zzSourceList.Add(clParentCandlesList.Candles[clParentCandlesList.CountDec]);
+                this.ZigZagMap.Add(0);
+                this.HighMap.Add(0);
+                this.LowMap.Add(0);
+            }
+
+            this.nZigZagCalculationStartIndex = this.nUserExtDepth;
+            this.dDeviation = this.nUserExtDeviation * (this.ParentCandleList.ParentShare.PipsUnit / 10);
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
         }
 
         public void NewIndicatorValue()
         {
+<<<<<<< HEAD
+=======
+            UpdateIndicatorValue();
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
         }
 
         public void UpdateIndicatorValue()
         {
+<<<<<<< HEAD
+=======
+            int i               = 0;
+	        int counterZ        = 0;
+            int nWhatLookFor    = 0;
+	        int nShift          = 0;
+            int back            = 0; 
+            int nLastHighIndex  = 0; 
+            int nLastLowIndex   = 0;
+	        double dValue       = 0; 
+            double dRes         = 0;
+	        double dCurrLow     = 0; 
+            double dCurrHigh    = 0;
+            double dLastHigh    = 0; 
+            double dLastLow     = 0;
+	
+	        // ZigZag was already counted before
+            if (this.nZigZagCalculationStartIndex != nUserExtDepth)
+            {
+		        // searching third extremum from the last uncompleted bar
+                for (i = this.zzSourceList.Count - 1; (i > this.zzSourceList.Count - 100) && (counterZ < nLevel); i--)
+                {
+			        dRes = ZigZagMap[i];
+			        if(dRes != 0) 
+			        {
+				        counterZ++;
+			        }
+                }
+		
+		        i++;
+                this.nZigZagCalculationStartIndex = i;
+	
+		        // what type of exremum we are going to find
+		        if(LowMap[i] != 0)
+		        {
+                    // searching for next high
+			        dCurrLow=LowMap[i];
+			        nWhatLookFor = 1;
+		        }
+		        else
+		        {
+                    // searching for next low
+			        dCurrHigh = HighMap[i];
+			        nWhatLookFor = -1;
+		        }
+		
+		        // chipping
+                for (i = this.nZigZagCalculationStartIndex + 1; i < this.zzSourceList.Count; i++)
+                {
+                    ZigZagMap[i] = 0;
+                    LowMap[i] = 0;
+                    HighMap[i] = 0;
+                }
+            }
+
+	
+	        
+	        // Searching High and Low
+            for (nShift = this.nZigZagCalculationStartIndex; nShift < this.zzSourceList.Count; nShift++)       
+            {
+                // Low
+                dValue = Lowest(this.nUserExtDepth, nShift); 
+
+		        if(dValue == dLastLow) 			
+		        {
+			        dValue = 0;
+                    this.LowMap[nShift] = 0;								 
+		        }
+		        else
+                {
+			        dLastLow = dValue;
+                    if ((this.zzSourceList[nShift].R_Low - dValue) > dDeviation)                               
+			        {	
+				        dValue = 0;						 
+			        }
+			        else
+                    {
+				        for (back = 1; back <= nUserExtBackstep; back++)
+				        {
+					        dRes=this.LowMap[nShift - back];
+					        if ((dRes != 0) && (dRes > dValue))
+					        {
+                                this.LowMap[nShift - back] = 0;
+					        }
+				        }
+			        }
+
+                    if (this.zzSourceList[nShift].R_Low == dValue)
+                    {
+                        this.LowMap[nShift] = dValue;
+                    }
+                    else
+                    {
+                        this.LowMap[nShift] = 0;
+                    }
+                }
+
+                // High
+                dValue = Highest(this.nUserExtDepth, nShift);
+
+                if (dValue == dLastHigh)
+                {
+                    dValue = 0;
+                    HighMap[nShift] = 0;
+                }
+                else
+                {
+                    dLastHigh = dValue;
+                    if ((dValue - this.zzSourceList[nShift].R_High) > dDeviation)
+                    {
+                        dValue = 0;
+                    }
+                    else
+                    {
+                        for (back = 1; back <= nUserExtBackstep; back++)
+                        {
+                            dRes = HighMap[nShift - back];
+                            if ((dRes != 0) && (dRes < dValue))
+                            {
+                                HighMap[nShift - back] = 0;
+                            }
+                        }
+                    }
+
+                    if (this.zzSourceList[nShift].R_High == dValue)
+                    {
+                        HighMap[nShift] = dValue;
+                    }
+                    else
+                    {
+                        HighMap[nShift] = 0;
+                    }
+                }
+            }
+
+
+
+
+            // Last preparation
+            if (nWhatLookFor == 0) // uncertain quantity
+            {
+                dLastLow = 0;
+                dLastHigh = 0;
+            }
+            else
+            {
+                dLastLow = dCurrLow;
+                dLastHigh = dCurrHigh;
+            }
+
+            // Final rejection
+            for (nShift = this.nZigZagCalculationStartIndex; nShift < this.zzSourceList.Count; nShift++)
+            {
+                dRes = 0;
+                switch (nWhatLookFor)
+                {
+                    case -1: // Search for lawn
+                    {
+                        if ((HighMap[nShift] != 0) && (HighMap[nShift] > dLastHigh) && (LowMap[nShift] == 0))
+                        {
+                            ZigZagMap[nLastHighIndex] = 0;
+                            nLastHighIndex = nShift;
+                            dLastHigh = HighMap[nShift];
+                            ZigZagMap[nShift] = dLastHigh;
+                        }
+
+                        if ((LowMap[nShift] != 0) && (HighMap[nShift] == 0))
+                        {
+                            dLastLow = LowMap[nShift];
+                            nLastLowIndex = nShift;
+                            ZigZagMap[nShift] = dLastLow;
+                            nWhatLookFor = 1;
+                        }
+                        break;
+                    }
+                    case 0: // Search for peak or lawn
+                    {
+                        if ((dLastLow == 0) && (dLastHigh == 0))
+                        {
+                            if (HighMap[nShift] != 0)
+                            {
+                                dLastHigh = this.zzSourceList[nShift].R_High;
+                                nLastHighIndex = nShift;
+                                nWhatLookFor = -1;
+                                ZigZagMap[nShift] = dLastHigh;
+                                dRes = 1;
+                            }
+
+                            if (LowMap[nShift] != 0)
+                            {
+                                dLastLow = this.zzSourceList[nShift].R_Low;
+                                nLastLowIndex = nShift;
+                                nWhatLookFor = 1;
+                                ZigZagMap[nShift] = dLastLow;
+                                dRes = 1;
+                            }
+                        }
+                        break;
+                    }
+                    case 1: // Search for peak
+                    {
+                        if ((LowMap[nShift] != 0) && (LowMap[nShift] < dLastLow) && (HighMap[nShift] == 0))
+                        {
+                            ZigZagMap[nLastLowIndex] = 0;
+                            nLastLowIndex = nShift;
+                            dLastLow = LowMap[nShift];
+                            ZigZagMap[nShift] = dLastLow;
+                            dRes = 1;
+                        }
+
+                        if (HighMap[nShift] != 0 && LowMap[nShift] == 0)
+                        {
+                            dLastHigh = HighMap[nShift];
+                            nLastHighIndex = nShift;
+                            ZigZagMap[nShift] = dLastHigh;
+                            nWhatLookFor = -1;
+                            dRes = 1;
+                        }
+                        break;
+                    }
+                }
+            }
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
         }
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
+<<<<<<< HEAD
         }
 
+=======
+            if (this.ParentCandleList.ParentShare.OffLineCandleIndex - 500 > 0)
+            {
+                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
+                    string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
+            }
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
 
+            this.zzSourceList.RemoveAt(0);
+            this.ZigZagMap.RemoveAt(0);
+            this.HighMap.RemoveAt(0);
+            this.LowMap.RemoveAt(0);
+            this.zzSourceList.Add(cNewCandle);
+            this.ZigZagMap.Add(0);
+            this.HighMap.Add(0);
+            this.LowMap.Add(0);
+        }
         public void CompleteInitializationActions()
         {
+<<<<<<< HEAD
+=======
+            this.nZigZagCalculationStartIndex = 0;
+        }
+        // Searching index of the highest bar
+        private double Highest(int nDepth, int nStartIndex)
+        {
+	        // Depth correction if need
+	        if (nStartIndex - nDepth < 0) 
+	        {
+		        nDepth = nStartIndex;
+	        }
+	
+	        double dMaxVal = this.zzSourceList[nStartIndex].R_High;
+	
+	        //--- start searching
+	        for (int nIndex = nStartIndex; nIndex > nStartIndex - nDepth; nIndex--)
+	        {
+                if (this.zzSourceList[nIndex].R_High > dMaxVal)
+		        {
+                    dMaxVal = this.zzSourceList[nIndex].R_High;
+		        }
+	        }
+	
+	        //--- return index of the highest bar
+            return (dMaxVal);
+        }
+        // Searching index of the lowest bar        
+        private double Lowest(int nDepth, int nStartIndex)
+        {
+	        // Depth correction if need
+	        if (nStartIndex - nDepth < 0) 
+	        {
+		        nDepth = nStartIndex;
+	        }
+
+            double nMinVal = this.zzSourceList[nStartIndex].R_Low;
+	
+	        // Start searching
+	        for (int nIndex = nStartIndex; nIndex > nStartIndex - nDepth; nIndex--)
+	        {
+                if (this.zzSourceList[nIndex].R_Low < nMinVal)
+		        {
+                    nMinVal = this.zzSourceList[nIndex].R_Low;
+		        }
+	        }
+	
+	        // Return index of the lowest bar
+            return (nMinVal);
+>>>>>>> afcd4b099861b2eb2a6f24d21bfd3d9f3839af41
         }
     }
 }

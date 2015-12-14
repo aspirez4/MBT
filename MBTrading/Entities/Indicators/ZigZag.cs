@@ -34,7 +34,7 @@ namespace MBTrading.Entities.Indicators
 
         public  int Length              = 500;
         private int nZigZagCalculationStartIndex;
-        private int nUserExtDepth       = 12;
+        private int nUserExtDepth       = 5;
         private int nUserExtDeviation   = 5;
         private int nUserExtBackstep    = 3;
         private int nLevel              = 3; // recounting depth
@@ -238,6 +238,8 @@ namespace MBTrading.Entities.Indicators
                             nLastHighIndex = nShift;
                             dLastHigh = HighMap[nShift];
                             ZigZagMap[nShift] = dLastHigh;
+                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
+                            //ZigZagLowEvent(nShift, dLastHigh);
                         }
 
                         if ((LowMap[nShift] != 0) && (HighMap[nShift] == 0))
@@ -246,7 +248,7 @@ namespace MBTrading.Entities.Indicators
                             nLastLowIndex = nShift;
                             ZigZagMap[nShift] = dLastLow;
                             nWhatLookFor = 1;
-                            ZigZagLowEvent(nShift, dLastLow);
+                            //ZigZagLowEvent(nShift, dLastLow);
                         }
                         break;
                     }
@@ -261,6 +263,8 @@ namespace MBTrading.Entities.Indicators
                                 nWhatLookFor = -1;
                                 ZigZagMap[nShift] = dLastHigh;
                                 dRes = 1;
+                                this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
+                                //ZigZagLowEvent(nShift, dLastHigh);
                             }
 
                             if (LowMap[nShift] != 0)
@@ -270,7 +274,7 @@ namespace MBTrading.Entities.Indicators
                                 nWhatLookFor = 1;
                                 ZigZagMap[nShift] = dLastLow;
                                 dRes = 1;
-                                ZigZagLowEvent(nShift, dLastLow);
+                                //ZigZagLowEvent(nShift, dLastLow);
                             }
                         }
                         break;
@@ -284,7 +288,7 @@ namespace MBTrading.Entities.Indicators
                             dLastLow = LowMap[nShift];
                             ZigZagMap[nShift] = dLastLow;
                             dRes = 1;
-                            ZigZagLowEvent(nShift, dLastLow);
+                            //ZigZagLowEvent(nShift, dLastLow);
                         }
 
                         if (HighMap[nShift] != 0 && LowMap[nShift] == 0)
@@ -294,6 +298,8 @@ namespace MBTrading.Entities.Indicators
                             ZigZagMap[nShift] = dLastHigh;
                             nWhatLookFor = -1;
                             dRes = 1;
+                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
+                            //ZigZagLowEvent(nShift, dLastHigh);
                         }
                         break;
                     }
@@ -303,11 +309,8 @@ namespace MBTrading.Entities.Indicators
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
-            if (this.ParentCandleList.ParentShare.OffLineCandleIndex - 100 > 0)
-            {
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-                    string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 100));
-            }
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
+                string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
 
             this.zzSourceList.RemoveAt(0);
             this.ZigZagMap.RemoveAt(0);

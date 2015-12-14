@@ -606,12 +606,14 @@ namespace MBTrading
                 // Potential Sell conditions - MA's crossed - WMA bellow EMA - Starting of a Downward
                 bool bCrossMA = ((this.CandlesList.PrevCandle.StartWMA - this.CandlesList.PrevCandle.StartEMA > this.PipsUnit * this.D_MilitraizedZone) && (this.CandlesList.WMA.Value - this.CandlesList.EMA.Value <= this.PipsUnit * this.D_MilitraizedZone));
 
-                // Set the indicator to True wen => Cross occurd || already set it befor to True
+                // Set the indicator to True when => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.OffLineIsPosition)) || (this.CrossIndicator));
 
                 if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
                 {
                     this.StopLoss = Math.Min(cBeforePreviousCandle.Low, cPreviousCandle.Low) - (this.PipsUnit * 2);
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("3;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
                     this.CrossIndicator = false;
                 }
                 #endregion
@@ -652,7 +654,7 @@ namespace MBTrading
 				
                 this.PositionQuantity = Consts.QUANTITY;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
-                this.CandlesList.ZigZag.ZigZagLowEvent += ZigZagLowEvent;
+ //               this.CandlesList.ZigZag.ZigZagLowEvent += ZigZagLowEvent;
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("1;{0};{1};{2}\n", this.Symbol, this.BuyPrice, this.OffLineCandleIndex));
 
@@ -705,7 +707,7 @@ namespace MBTrading
             this.BuyPrice = 0;
             this.StopLoss = 0;
             this.PositionQuantity = 0;
-            this.CandlesList.ZigZag.ZigZagLowEvent -= ZigZagLowEvent;
+   //         this.CandlesList.ZigZag.ZigZagLowEvent -= ZigZagLowEvent;
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
@@ -742,6 +744,8 @@ namespace MBTrading
         }
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {
+            double dPossibleStopLoss = 0;
+
             if (this.IsPosition)
             {
                 if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag.Length - nIndex))
@@ -751,9 +755,23 @@ namespace MBTrading
             }
             else if (this.OffLineIsPosition)
             {
-                if ((this.StopLoss < dLastLow) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                for (int nZigZagIndex = nIndex - 1; nZigZagIndex > 0; nZigZagIndex--)
                 {
-                    this.StopLoss = dLastLow;
+                    if (this.CandlesList.ZigZag.ZigZagMap[nZigZagIndex] != 0)
+                    {
+                        dPossibleStopLoss = this.CandlesList.ZigZag.ZigZagMap[nZigZagIndex];
+                        nIndex = nZigZagIndex;
+                        break;
+                    }
+                }
+
+                if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                {
+                    this.StopLoss = dPossibleStopLoss;
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag.Length - nIndex)));
                 }
             }
         }

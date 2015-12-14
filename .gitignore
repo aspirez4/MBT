@@ -1,2 +1,2 @@
-*.exe
-MBTrading/bin
+bin/
+obj/

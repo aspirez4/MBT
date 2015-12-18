@@ -572,7 +572,7 @@ namespace MBTrading
 
                 if ((this.OffLineIsPosition) && (!cMegaPreviousCandle.WMADirection) && (!cBeforePreviousCandle.WMADirection))
                 {
-                    this.StopLoss = this.FindTheLastKnee(1);
+                    //this.StopLoss = this.FindTheLastKnee(1);
                 }
 
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
@@ -611,9 +611,7 @@ namespace MBTrading
 
                 if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
                 {
-                    this.StopLoss = Math.Min(cBeforePreviousCandle.Low, cPreviousCandle.Low) - (this.PipsUnit * 2);
-                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("3;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+                    this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
                     this.CrossIndicator = false;
                 }
                 #endregion
@@ -673,7 +671,6 @@ namespace MBTrading
                 if (OffLineVirtualBuyIndex != this.OffLineCandleIndex)
                 {
                     this.OffLineVirtualBuyIndex = this.OffLineCandleIndex;
-                    this.StopLoss = dStopLoss;
                     this.PrintOutPrediction();
 
                     if (true)

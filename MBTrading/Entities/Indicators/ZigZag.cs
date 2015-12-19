@@ -34,15 +34,16 @@ namespace MBTrading.Entities.Indicators
 
         public  int Length              = 500;
         private int nZigZagCalculationStartIndex;
-        private int nUserExtDepth       = 5;
+        private int nUserExtDepth       = 5; // Origainaly 12
         private int nUserExtDeviation   = 5;
         private int nUserExtBackstep    = 3;
         private int nLevel              = 3; // recounting depth
         private double dDeviation;           // deviation in points
 
 
-        public ZigZag()
+        public ZigZag(int nZigZagDepth)
         {
+            this.nUserExtDepth = nZigZagDepth;
             this.zzSourceList = new List<Candle>();
             this.ZigZagMap = new List<double>();
             this.HighMap = new List<double>();
@@ -90,14 +91,15 @@ namespace MBTrading.Entities.Indicators
             dLastHigh       = 0;
             dLastLow        = 0;
 
-	        // ZigZag was already counted before
+            #region Find the first index to 100 candles befor or to the thired zigzag from the last - set all to 0
+ 
+            // ZigZag was already counted before
             if (this.nZigZagCalculationStartIndex != nUserExtDepth)
             {
 		        // searching third extremum from the last uncompleted bar
                 for (i = this.zzSourceList.Count - 1; (i > this.zzSourceList.Count - 100) && (counterZ < nLevel); i--)
                 {
-			        dRes = ZigZagMap[i];
-			        if(dRes != 0) 
+			        if(ZigZagMap[i] != 0) 
 			        {
 				        counterZ++;
 			        }
@@ -110,7 +112,7 @@ namespace MBTrading.Entities.Indicators
 		        if(LowMap[i] != 0)
 		        {
                     // searching for next high
-			        dCurrLow=LowMap[i];
+			        dCurrLow = LowMap[i];
 			        nWhatLookFor = 1;
 		        }
 		        else
@@ -129,9 +131,11 @@ namespace MBTrading.Entities.Indicators
                 }
             }
 
-	
-	        
-	        // Searching High and Low
+            #endregion
+
+            #region Find the low and high
+
+            // Searching High and Low
             for (nShift = this.nZigZagCalculationStartIndex; nShift < this.zzSourceList.Count; nShift++)       
             {
                 // Low
@@ -153,7 +157,7 @@ namespace MBTrading.Entities.Indicators
                     {
 				        for (back = 1; back <= nUserExtBackstep; back++)
 				        {
-					        dRes=this.LowMap[nShift - back];
+					        dRes = this.LowMap[nShift - back];
 					        if ((dRes != 0) && (dRes > dValue))
 					        {
                                 this.LowMap[nShift - back] = 0;
@@ -209,8 +213,9 @@ namespace MBTrading.Entities.Indicators
                 }
             }
 
+            #endregion
 
-
+            #region Set the ZigZag map
 
             // Last preparation
             if (nWhatLookFor == 0) // uncertain quantity
@@ -305,12 +310,16 @@ namespace MBTrading.Entities.Indicators
                     }
                 }
             }
+
+            #endregion
         }
+
+
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-                string.Format("5;{0};{1};{2}\n", this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
+                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
 
             this.zzSourceList.RemoveAt(0);
             this.ZigZagMap.RemoveAt(0);

@@ -29,6 +29,7 @@ namespace MBTrading
         public ChangingPriceForOrder    ChangingStopPirce                   = null;
         public double                   ReversalStopLimitPrice              = 0;
         public bool                     CrossIndicator                      = false;
+        public bool                     CrossEMALine                        = false;
 
 
         public CandlesList                          CandlesList;
@@ -499,7 +500,7 @@ namespace MBTrading
         }
         public double CalcStopLoss()
         {
-            double dStopLoss = double.MaxValue;
+            double dStopLoss = this.CandlesList.LastCandle.R_Low;
 
             bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec].WMADirection;
             for (int nWMADirInex = this.CandlesList.Candles.Count - 2; nWMADirInex > 0 /* this.CandlesList.CountDec - 10 */ ; nWMADirInex--)
@@ -570,19 +571,21 @@ namespace MBTrading
                 Candle cBeforePreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 2];
                 Candle cPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 1];
 
-                if ((this.OffLineIsPosition) && (!cMegaPreviousCandle.WMADirection) && (!cBeforePreviousCandle.WMADirection))
+                if ((this.OffLineIsPosition) && (cPreviousCandle.EndWMA > cPreviousCandle.EndEMA) && (cBeforePreviousCandle.StartWMA < cBeforePreviousCandle.StartEMA) && (this.StopLoss < this.BuyPrice))
                 {
-                    //this.StopLoss = this.FindTheLastKnee(1);
+                    this.StopLoss = this.BuyPrice;
                 }
+
+                this.CrossEMALine = (this.CrossEMALine) || ((cPreviousCandle.EndWMA > cPreviousCandle.EndEMA) && (this.OffLineIsPosition));
+
 
                 if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
                     (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
-                    //(cPreviousCandle.EndTDI_Green < cPreviousCandle.EndTDI_Mid))
-                    (cPreviousCandle.EndTDI_Green < (cPreviousCandle.EndTDI_Upper - cPreviousCandle.EndTDI_Lower) * 0.5 + cPreviousCandle.EndTDI_Lower))
+                    (cPreviousCandle.EndTDI_Green < (cPreviousCandle.EndTDI_Upper - cPreviousCandle.EndTDI_Lower) * 0.5 + cPreviousCandle.EndTDI_Lower) )
                 {
                     if (!this.OffLineIsPosition)
                     {
-                        this.OffLineBuy(this.CalcStopLoss(), false);
+                        this.OffLineBuy(this.FindTheLastKnee(1), false);
                     }
                 }
 
@@ -691,6 +694,7 @@ namespace MBTrading
             this.SellPrice = this.CandlesList.CurrPrice;
             this.OffLineSellIndex = this.OffLineCandleIndex;
             this.CrossIndicator = false;
+            this.CrossEMALine = false;
             this.OffLineIsPosition = false;
 			this.bWasPartiald = false;
             this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
@@ -745,30 +749,30 @@ namespace MBTrading
 
             if (this.IsPosition)
             {
-                if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
                 {
                     this.StopLoss = dLastLow;
                 }
             }
-            else if (this.OffLineIsPosition)
+            else if ((this.OffLineIsPosition) && (this.CrossEMALine))
             {
                 for (int nZigZagIndex = nIndex - 1; nZigZagIndex > 0; nZigZagIndex--)
                 {
-                    if (this.CandlesList.ZigZag.ZigZagMap[nZigZagIndex] != 0)
+                    if (this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] != 0)
                     {
-                        dPossibleStopLoss = this.CandlesList.ZigZag.ZigZagMap[nZigZagIndex];
+                        dPossibleStopLoss = this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] - 4 * this.PipsUnit;
                         nIndex = nZigZagIndex;
                         break;
                     }
                 }
 
-                if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag.Length - nIndex))
+                if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
                 {
                     this.StopLoss = dPossibleStopLoss;
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                         string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag.Length - nIndex)));
+                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
                 }
             }
         }

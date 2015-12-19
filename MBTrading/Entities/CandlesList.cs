@@ -40,7 +40,8 @@ namespace MBTrading
         public WMA              WMA;
       //public Awesome          Awesome;
         public TDI              TDI;
-        public ZigZag           ZigZag;
+        public ZigZag           ZigZag5;
+        public ZigZag           ZigZag10;
 
         // Neural Network
         public int P, N = 0;
@@ -76,13 +77,15 @@ namespace MBTrading
             EMA             = new EMA();
             WMA             = new WMA();
             TDI             = new TDI();
-            ZigZag          = new ZigZag();
+            ZigZag5         = new ZigZag(5);
+            ZigZag10        = new ZigZag(12);
             RSI.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);
             WMA.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
-            ZigZag.RegisterIndicator(this);
+            ZigZag5.RegisterIndicator(this);
+            ZigZag10.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 
             this.IndicatorsList.ForEach(I => I.NewIndicatorValue());
@@ -122,6 +125,7 @@ namespace MBTrading
                 this.LastCandle.EndTDI_Mid = this.TDI.TDI_Mid;
                 this.LastCandle.EndTDI_Upper = this.TDI.TDI_Upper;
                 this.LastCandle.EndTDI_Lower = this.TDI.TDI_Lower;
+
                 this.LastCandle.ExtraList.Add(this.SMA.Value);
                 this.LastCandle.ExtraList.Add(this.SMA.LowerBollinger);
                 this.LastCandle.ExtraList.Add(this.SMA.UpperBollinger);

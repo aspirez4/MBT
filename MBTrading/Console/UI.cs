@@ -76,7 +76,7 @@ namespace MBTrading
         public static void MainTableShares()
         {
             string strLastCandles = "\n\n\n\nLast Candles:\n";
-            string strTechDetails = "\n\nTechnical Details\n-----------------\nEST                             : {0}\nMBTrading QuouteAPI Last HB     : {1}\nMBTrading FixGW     Last HB     : {2}\nMBTrading LogonIndicator 	: {3}\nMBTrading ServerSeq             : {4}\nCandles                  	: {5}\nThreads                 	: {6}\n";
+            string strTechDetails = "\n\nTechnical Details\n-----------------\nEST                             : {0}\nMBTrading QuouteAPI Last HB     : {1}\nMBTrading FixGW     Last HB     : {2}\nMBTrading LogonIndicator 	: {3}\nMBTrading ServerSeq             : {4}\nCandles                  	: {5}\nThreads                 	: {6}\nMonths                  	: {7}\n";
             strTechDetails = string.Format(strTechDetails,
                                            Time.EST,
                                            QuoteUtils.LastHB,
@@ -84,7 +84,8 @@ namespace MBTrading
                                            FixGatewayUtils.LogonIndicator,
                                            FixGatewayUtils.LastGatewaySequence,
                                            Consts.MINUTE_CANDLES_PRIMARY,
-                                           Process.GetCurrentProcess().Threads.Count);
+                                           Process.GetCurrentProcess().Threads.Count,
+                                           Program.SharesList["AUD/JPY"].OffLineCandleIndex * (Consts.MINUTE_CANDLES_PRIMARY / 60.0) / 480.0);
 
 
             string strTableTitle = "\n\n\n\nForex Table\n-----------\nSymbol              Price           EMA           BuyOrder     Position     BuyPrice     StopPrice     Quantity     CurrP&L       TotalP&L         Comm\n\n";

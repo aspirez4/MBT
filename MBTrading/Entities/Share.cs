@@ -12,14 +12,12 @@ namespace MBTrading
 {
     public class Share
     {
-        public bool NNActive = false;
+        public bool NNActive = true;
         public int D_MilitraizedZone = 10; // 10
-        public int StrategyTriger = 4;    // 4
         public double Risk = 0;
         public bool PartialMode = false;
 		public bool bWasPartiald = false;
 		
-        public NNOrdersList             NNOrdersList;
         public int                      nNeuralNetworkLearnCounter          = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
         public bool                     bDidFirstConditionHappened          = false;
         public bool                     bDidSecondConditionHappened         = false;
@@ -93,7 +91,6 @@ namespace MBTrading
             this.IsBuyOrderSentOrExecuted   = false;
             this.Symbol                     = strSymbol;
             this.PositionsReport            = false;
-            this.NNOrdersList               = new NNOrdersList();
         }
         public  void UpdateShareConsts()
         {
@@ -541,26 +538,12 @@ namespace MBTrading
                 this.nNeuralNetworkLearnCounter--;
                 this.CandlesList.NeuralNetworSelfAwarenessPredict(0.5);
                 this.PrintOutPrediction();
-
-                if (this.OffLineCandleIndex > 25)
-                {
-                    double dStop = this.CalcStopLoss();
-
-                    NNOrder n = new NNOrder(this,
-                                    dStop,
-                                    this.CandlesList.CurrPrice,
-                                    this.CandlesList.Candles,
-                                    true);
-                    this.NNOrdersList.Add(n);
-
-                }
             }
 
-            this.NNOrdersList.CheckOrders(this.CandlesList.CurrPrice, bIsNewCandle);
-            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkSelfAwarenessCollection.Count > 5))
+            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkZigZagData.Count > 5))
             {
                 nNeuralNetworkLearnCounter = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
-                this.CandlesList.NeuralNetworkSelfAwarenessActivate();
+                this.CandlesList.NeuralNetworkActivate();
             }
             #endregion
 
@@ -632,59 +615,26 @@ namespace MBTrading
         }
         public void OffLineBuy(double dStopLoss, bool bStrategy)
         {
-            if ((!this.NNActive) || (this.CandlesList.NNStrategy == null) ||
-                ((this.CandlesList.NNStrategy.AccuracyRate > 0.2) && 
-                 ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy > 0.2) || 
-                  (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy > 0.2))))
-  //              ||
-  //              (!bStrategy && (this.CandlesList.NNOther.AccuracyRate > 0.6) &&
-  //               ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionOther > 0.5) ||
-  //                (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionOther > 0.5))))
+            if ((!this.NNActive) || (this.CandlesList.NN == null) ||
+                ((this.CandlesList.NN.AccuracyRate > 0.6) && 
+                 ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy > 0.5) || 
+                  (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy > 0.5))))
             {
                 // BUYYYYYYYYYYY
                 this.StartReversalIndex = 0;
                 this.OffLineBuyIndex = this.OffLineCandleIndex;
 
                 this.BuyPrice = this.CandlesList.LastCandle.Bid;
-
                 this.OffLineIsPosition = true;
-                this.StopLoss = 0.01;// this.BuyPrice - this.PipsToStopLoss;
                 this.StopLoss = dStopLoss;
 				
 				this.Risk = this.BuyPrice - this.StopLoss;
 				
                 this.PositionQuantity = Consts.QUANTITY;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
- //               this.CandlesList.ZigZag.ZigZagLowEvent += ZigZagLowEvent;
+
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("1;{0};{1};{2}\n", this.Symbol, this.BuyPrice, this.OffLineCandleIndex));
-
-
-                if (true)
-                {
-                    this.NNOrdersList.Add(new NNOrder(this,
-                        dStopLoss,
-                        this.BuyPrice,
-                        this.CandlesList.Candles,
-                        bStrategy));
-                }
-            }
-            else
-            {
-                if (OffLineVirtualBuyIndex != this.OffLineCandleIndex)
-                {
-                    this.OffLineVirtualBuyIndex = this.OffLineCandleIndex;
-                    this.PrintOutPrediction();
-
-                    if (true)
-                    {
-                        this.NNOrdersList.Add(new NNOrder(this,
-                            dStopLoss,
-                            this.CandlesList.CurrPrice + this.PipsAboveForLimitPrice,
-                            this.CandlesList.Candles,
-                            bStrategy));
-                    }
-                }
             }
         }
         public void OffLineSell(bool bLong)
@@ -708,7 +658,6 @@ namespace MBTrading
             this.BuyPrice = 0;
             this.StopLoss = 0;
             this.PositionQuantity = 0;
-   //         this.CandlesList.ZigZag.ZigZagLowEvent -= ZigZagLowEvent;
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
@@ -732,11 +681,12 @@ namespace MBTrading
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
+        
         public void PrintOutPrediction()
         {
-            if (this.CandlesList.NNStrategy != null)
+            if (this.CandlesList.NN != null)
             {
-                string strLable1 = this.CandlesList.NNStrategy.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy;
+                string strLable1 = this.CandlesList.NN.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy;
                 string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy.ToString();
 
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),

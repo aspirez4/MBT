@@ -45,9 +45,9 @@ namespace MBTrading.Entities
                 { this.ProfitIndicator = 0; this.ParentShare.CandlesList.N++; }
             }
 
-            if (this.ParentShare.CandlesList.NeuralNetworkSelfAwarenessCollection.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES)
-            { this.ParentShare.CandlesList.NeuralNetworkSelfAwarenessCollection.RemoveAt(0); }
-            this.ParentShare.CandlesList.NeuralNetworkSelfAwarenessCollection.Add(this);
+            if (this.ParentShare.CandlesList.NeuralNetworkCollection.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES)
+            { this.ParentShare.CandlesList.NeuralNetworkCollection.RemoveAt(0); }
+            this.ParentShare.CandlesList.NeuralNetworkCollection.Add(this);
         }
         public void CheckUpdateStop()
         {

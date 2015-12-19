@@ -32,7 +32,7 @@ namespace MBTrading.Entities.Indicators
         double  dLastHigh       = 0;
         double  dLastLow        = 0;
 
-        public  int Length              = 500;
+        public  int Length              = 200;
         private int nZigZagCalculationStartIndex;
         private int nUserExtDepth       = 5; // Origainaly 12
         private int nUserExtDeviation   = 5;
@@ -319,7 +319,22 @@ namespace MBTrading.Entities.Indicators
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - 500));
+                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length));
+
+            // ZigZag NeuralNetwork
+            if (this.zzSourceList[0].CandleIndex > 0)
+            {
+                this.ParentCandleList.NeuralNetworkCandlesData.Add(this.zzSourceList[0]);
+                if (this.ZigZagMap[0] != 0)
+                {
+                    ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.High, this.zzSourceList[0].CandleIndex);
+                    if (this.ZigZagMap[0] == this.LowMap[0])
+                    {
+                        zd.Indication = ZigZagIndication.Low;
+                    }
+                    this.ParentCandleList.NeuralNetworkZigZagData.Add(zd);
+                }
+            }
 
             this.zzSourceList.RemoveAt(0);
             this.ZigZagMap.RemoveAt(0);
@@ -381,4 +396,22 @@ namespace MBTrading.Entities.Indicators
             return (nMinVal);
         }
     }
+
+    public class ZigZagData
+    {
+        public double Value;
+        public ZigZagIndication Indication;
+        public int CandleIndex;
+
+        public ZigZagData(double dValue, ZigZagIndication ziIndication, int nCandleIndex)
+        {
+            this.Value = dValue;
+            this.Indication = ziIndication;
+            this.CandleIndex = nCandleIndex;
+        }
+    }
+    public enum ZigZagIndication
+    {
+        Low, High
+    };
 }

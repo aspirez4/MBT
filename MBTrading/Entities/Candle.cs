@@ -37,8 +37,7 @@ namespace MBTrading
         public double   StartTDI_Red;
         public int      NumOfPeiceUpdates;
         public double   PricesSum;
-        public double   ProfitPredictionStrategy;
-        public double   ProfitPredictionOther;
+        public double   ZigZagPrediction;
         public List<double> ExtraList;
         public double   CandleVolume { get { if (this.StartVolume > this.LastVolume) { this.StartVolume = 0; } return (this.LastVolume - this.StartVolume);}  }
 
@@ -71,7 +70,7 @@ namespace MBTrading
             this.PricesSum    = dOpen;
             this.CandleIndex     = nCandleNo;
             this.NumOfPeiceUpdates = 1;
-            this.ProfitPredictionStrategy = 0;
+            this.ZigZagPrediction = 0;
         }
 
         public void UpdateCandle(MarketData mdCurrMarketData)

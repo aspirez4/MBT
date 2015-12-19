@@ -533,7 +533,7 @@ namespace MBTrading.Utils
             yValues = this.ComputeOutputs(xValues);
             int maxIndex = MaxIndex(yValues); // which cell in yValues has largest value?
 
-            return (yValues[1]);
+            return (yValues[0]);
 
             //if (yValues[maxIndex] > dPossitiveRate)
             //{

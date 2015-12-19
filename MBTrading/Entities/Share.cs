@@ -536,11 +536,11 @@ namespace MBTrading
                 Thread.Sleep(100);
                 this.OffLineCandleIndex++;
                 this.nNeuralNetworkLearnCounter--;
-                this.CandlesList.NeuralNetworSelfAwarenessPredict(0.5);
+                this.CandlesList.NeuralNetworPredict();
                 this.PrintOutPrediction();
             }
 
-            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkZigZagData.Count > 5))
+            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkZigZagData.Count > 10))
             {
                 nNeuralNetworkLearnCounter = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
                 this.CandlesList.NeuralNetworkActivate();
@@ -617,8 +617,8 @@ namespace MBTrading
         {
             if ((!this.NNActive) || (this.CandlesList.NN == null) ||
                 ((this.CandlesList.NN.AccuracyRate > 0.6) && 
-                 ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy > 0.5) || 
-                  (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy > 0.5))))
+                 ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction > 0.75) || 
+                  (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ZigZagPrediction > 0.75))))
             {
                 // BUYYYYYYYYYYY
                 this.StartReversalIndex = 0;
@@ -686,8 +686,8 @@ namespace MBTrading
         {
             if (this.CandlesList.NN != null)
             {
-                string strLable1 = this.CandlesList.NN.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ProfitPredictionStrategy + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy;
-                string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ProfitPredictionStrategy.ToString();
+                string strLable1 = this.CandlesList.NN.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ZigZagPrediction + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction;
+                string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction.ToString();
 
                 File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                     string.Format("2;{0};{1};{2}\n", this.Symbol, strLable2, this.OffLineCandleIndex));

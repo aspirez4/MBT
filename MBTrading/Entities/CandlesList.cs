@@ -40,7 +40,7 @@ namespace MBTrading
         public WMA              WMA;
         public TDI              TDI;
         public ZigZag           ZigZag5;
-        public ZigZag           ZigZag10;
+        public ZigZag           ZigZag12;
 
         // Neural Network
         public int P, N              = 0;
@@ -48,7 +48,7 @@ namespace MBTrading
         int     nCandlesPerSample    = 21;       //48;
         int     nParamsPerCandle     = 7;
         int     numOutput            = 2;
-        int     maxEpochsLoop        = 10;       // 2000
+        int     maxEpochsLoop        = 50;       // 2000
         double  learnRate            = 0.05;     // 0.05
         double  momentum             = 0.01;     // 0.01
         double  weightDecay          = 0.0001;   // 0.0001
@@ -76,15 +76,15 @@ namespace MBTrading
             EMA             = new EMA();
             WMA             = new WMA();
             TDI             = new TDI();
-            ZigZag5         = new ZigZag(5);
-            ZigZag10        = new ZigZag(12);
+            ZigZag5         = new ZigZag(5, false);
+            ZigZag12        = new ZigZag(12, true);
             RSI.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);
             WMA.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
             ZigZag5.RegisterIndicator(this);
-            ZigZag10.RegisterIndicator(this);
+            ZigZag12.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 
             this.IndicatorsList.ForEach(I => I.NewIndicatorValue());
@@ -218,13 +218,13 @@ namespace MBTrading
             nn.InitializeWeights();
             nn.Train(NormalizedTraingData, maxEpochsLoop, learnRate, momentum, weightDecay, meanSquaredError);
 
-            // Accuracy check
+            // Accuracy check   
             nn.AccuracyRate = nn.Accuracy(NormalizedTestData);
 
             // Set the new NeuralNetwork as the Current
             this.NN = nn;
         }
-        public bool NeuralNetworSelfAwarenessPredict(double dPossitiveRate)
+        public bool NeuralNetworPredict()
         {
             double[][] arrPredictSet;
             double[][] arrNormalizePredictionMatrix;
@@ -237,14 +237,14 @@ namespace MBTrading
                 arrNormalizePredictionMatrix = NeuralNetwork.NormalizeMatrix(this.NN.RawTrainData, this.NN.RawTrainData[0].Length - numOutput);
                 nPrediction = this.NN.Predict(arrNormalizePredictionMatrix[arrNormalizePredictionMatrix.Length - 1]);
 
-                this.Candles[this.CountDec - 1].ProfitPredictionStrategy = nPrediction;
+                this.Candles[this.CountDec - 1].ZigZagPrediction = nPrediction;
             }
 
             return (false);
         }
         public double[][] MakeNeuralNetworkDataMatrix(bool bIsTrainingMatrix, int nCandlesPerSample, int nOutputCount, int nParamsPerCandle)
         {
-            int nSamplesCount = this.NeuralNetworkData.Count;
+            int nSamplesCount = this.NeuralNetworkData.Count(C => C.CandleIndex - nCandlesPerSample > -1);
             int nCandlesListStart = bIsTrainingMatrix ? 0 : this.Candles.Count - nCandlesPerSample - 1;
             int nMatrixSizeToReturn = bIsTrainingMatrix ? nSamplesCount : 1;
             double[][] arrAllSampls = new double[nMatrixSizeToReturn][];
@@ -256,9 +256,9 @@ namespace MBTrading
             {
                 foreach (ZigZagData zzCurr in this.NeuralNetworkData)
                 {
-                    int nStart = zzCurr.CandleIndex - 21;
+                    int nStart = zzCurr.CandleIndex - nCandlesPerSample;
                     
-                    if (nStart > 0)
+                    if (nStart > -1)
                     {
                         arrSample = new double[nCandlesPerSample * nParamsPerCandle + nOutputCount];
                         for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < zzCurr.CandleIndex; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
@@ -280,14 +280,14 @@ namespace MBTrading
             }
             else
             {
-                int nStart = this.NeuralNetworkCandlesData.Count - 21;
+                int nStart = this.CountDec - 21;
 
-                if (nStart > 0)
+                if (nStart > -1)
                 {
                     arrSample = new double[nCandlesPerSample * nParamsPerCandle + nOutputCount];
-                    for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < this.NeuralNetworkCandlesData.Count; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
+                    for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < this.CountDec; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
                     {
-                        cCurrCandle = this.NeuralNetworkCandlesData[nZZindex];
+                        cCurrCandle = this.Candles[nZZindex];
                         arrSample[nSampleCandleIndex + 0] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.R_High);
                         arrSample[nSampleCandleIndex + 1] = MathUtils.PercentChange(cCurrCandle.ExtraList[1], cCurrCandle.ExtraList[2]);
                         arrSample[nSampleCandleIndex + 2] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.ExtraList[1]);
@@ -297,7 +297,7 @@ namespace MBTrading
                         arrSample[nSampleCandleIndex + 6] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
                     }
 
-                    arrAllSampls[nSampleIndex++] = arrSample;
+                    arrAllSampls[0] = arrSample;
                 }
             }
 

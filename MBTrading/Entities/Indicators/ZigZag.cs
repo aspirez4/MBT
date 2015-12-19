@@ -12,6 +12,7 @@ namespace MBTrading.Entities.Indicators
     {
         public event ZigZagHandler ZigZagLowEvent = delegate {};
 
+        public bool         NNActivation = false;
         public CandlesList  ParentCandleList = null;
         public List<Candle> zzSourceList;
         public List<double> ZigZagMap;
@@ -41,8 +42,9 @@ namespace MBTrading.Entities.Indicators
         private double dDeviation;           // deviation in points
 
 
-        public ZigZag(int nZigZagDepth)
+        public ZigZag(int nZigZagDepth, bool bNNActivation)
         {
+            this.NNActivation = bNNActivation;
             this.nUserExtDepth = nZigZagDepth;
             this.zzSourceList = new List<Candle>();
             this.ZigZagMap = new List<double>();
@@ -322,7 +324,7 @@ namespace MBTrading.Entities.Indicators
                 string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length));
 
             // ZigZag NeuralNetwork
-            if (this.zzSourceList[0].CandleIndex > 0)
+            if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))
             {
                 this.ParentCandleList.NeuralNetworkCandlesData.Add(this.zzSourceList[0]);
                 if (this.ZigZagMap[0] != 0)

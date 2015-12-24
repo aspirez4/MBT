@@ -18,6 +18,8 @@ namespace MBTrading.Entities.Indicators
         public List<double> ZigZagMap;
         public List<double> HighMap;
         public List<double> LowMap;
+        public ZigZagData   LastHigh;
+        public ZigZagData   LastLow;
         
         int     i               = 0;
         int     counterZ        = 0;
@@ -326,14 +328,27 @@ namespace MBTrading.Entities.Indicators
             // ZigZag NeuralNetwork
             if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))
             {
-                this.ParentCandleList.NeuralNetworkCandlesData.Add(this.zzSourceList[0]);
                 if (this.ZigZagMap[0] != 0)
                 {
-                    ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.High, this.zzSourceList[0].CandleIndex);
+                    ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.Low, this.zzSourceList[0].CandleIndex);
+
                     if (this.ZigZagMap[0] == this.LowMap[0])
                     {
-                        zd.Indication = ZigZagIndication.Low;
+                        this.LastLow = zd;
                     }
+                    else
+                    {
+                        zd.Indication = ZigZagIndication.High;
+                        this.LastHigh = zd;
+
+                        if (this.LastLow != null)
+                        {
+                            this.ParentCandleList.NeuralNetworkZigZagData.Add(new ZigZagData((this.LastLow.Value + this.LastHigh.Value) / 2, 
+                                                                              ZigZagIndication.Mid, 
+                                                                              (this.LastLow.CandleIndex + this.LastHigh.CandleIndex) / 2));
+                        }
+                    }
+                    
                     this.ParentCandleList.NeuralNetworkZigZagData.Add(zd);
                 }
             }
@@ -414,6 +429,6 @@ namespace MBTrading.Entities.Indicators
     }
     public enum ZigZagIndication
     {
-        Low, High
+        Low, Mid, High
     };
 }

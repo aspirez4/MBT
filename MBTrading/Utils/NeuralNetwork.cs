@@ -494,11 +494,13 @@ namespace MBTrading.Utils
 
         // ----------------------------------------------------------------------------------------
 
-        public double Accuracy(double[][] testData)
+        public double Accuracy(double[][] testData, int nPositiveIndex)
         {
             // percentage correct using winner-takes all
             int numCorrect = 0;
             int numWrong = 0;
+            int nTruePositive = 0;
+            int nFalsePositive = 0;
 
             double[] xValues = new double[numInput]; // inputs
             double[] tValues = new double[numOutput]; // targets
@@ -514,15 +516,20 @@ namespace MBTrading.Utils
                 if (tValues[maxIndex] == 1.0) // ugly. consider AreEqual(double x, double y)
                 {
                     ++numCorrect;
+                    if (maxIndex == nPositiveIndex) { nTruePositive++; }
                 }
                 else
                 {
                     ++numWrong;
+                    if (maxIndex == nPositiveIndex) { nFalsePositive++; }
                 }
             }
-            return (numCorrect * 1.0) / (numCorrect + numWrong); // ugly 2 - check for divide by zero
+
+            double dPossitiveAccuracy = (nTruePositive * 1.0) / (nTruePositive + nFalsePositive);
+            double dTotalAccuracyRate = (numCorrect * 1.0) / (numCorrect + numWrong); 
+            return (dTotalAccuracyRate); // ugly 2 - check for divide by zero
         }
-        public double Predict(double[] testData)
+        public double Predict(double[] testData, int nPositiveIndex)
         {
             double[] xValues = new double[numInput];  // inputs
             double[] tValues = new double[numOutput]; // targets
@@ -533,7 +540,7 @@ namespace MBTrading.Utils
             yValues = this.ComputeOutputs(xValues);
             int maxIndex = MaxIndex(yValues); // which cell in yValues has largest value?
 
-            return (yValues[0]);
+            return (yValues[nPositiveIndex]);
 
             //if (yValues[maxIndex] > dPossitiveRate)
             //{

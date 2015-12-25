@@ -11,12 +11,11 @@ namespace MBTrading
     public class CandlesList
     {
         // Neural Network
-        public List<Candle>     NeuralNetworkRawData = new List<Candle>();
-        public List<Candle>     NeuralNetworkCandlesData = new List<Candle>();
-        public List<ZigZagData> NeuralNetworkZigZagData = new List<ZigZagData>();
-        public List<ZigZagData> NeuralNetworkData = new List<ZigZagData>();
-        public List<NNOrder>    NeuralNetworkCollection = new List<NNOrder>();
-        public NeuralNetwork    NN;
+        public List<Candle>                 NeuralNetworkRawData = new List<Candle>();
+        public List<ZigZagData>             NeuralNetworkZigZagData = new List<ZigZagData>();
+        public List<NNOrder>                NeuralNetworkCollection = new List<NNOrder>();
+        public List<double>                 ModelSegmentation = new List<double>();
+        public NeuralNetwork                NN;
 
         // CandlesList
         public Share        ParentShare;
@@ -44,10 +43,11 @@ namespace MBTrading
 
         // Neural Network
         public int P, N              = 0;
+        public int nPossitiveIndex   = 0;
         int     nPrecentageToTrain   = 75;
         int     nCandlesPerSample    = 21;       //48;
-        int     nParamsPerCandle     = 7;
-        int     numOutput            = 2;
+        int     nParamsPerCandle     = 11;
+        int     numOutput            = 3;
         int     maxEpochsLoop        = 50;       // 2000
         double  learnRate            = 0.05;     // 0.05
         double  momentum             = 0.01;     // 0.01
@@ -140,7 +140,7 @@ namespace MBTrading
                 this.LastCandle.LogCandle(this.ParentShare, this.SMA.LowerBollinger);
                 MongoDBUtils.DBEventAfterCandleFinished(this.ParentShare, this.LastCandle);
 
-                if (this.NeuralNetworkRawData.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES) { this.NeuralNetworkRawData.RemoveAt(0); }
+                // if (this.NeuralNetworkRawData.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES) { this.NeuralNetworkRawData.RemoveAt(0); }
                 this.NeuralNetworkRawData.Add(this.LastCandle);
 
                 // New candle
@@ -190,8 +190,6 @@ namespace MBTrading
         // NeuralNetwork
         public void NeuralNetworkActivate()
         {
-            this.NeuralNetworkData.Clear();
-            this.NeuralNetworkData.AddRange(this.NeuralNetworkZigZagData);
             int numInput = nCandlesPerSample * nParamsPerCandle;
             int numHidden = numInput / 2;
 
@@ -205,6 +203,7 @@ namespace MBTrading
             NeuralNetwork nn = new NeuralNetwork(numInput, numHidden, numOutput);
             AllData = this.MakeNeuralNetworkDataMatrix(true, nCandlesPerSample, numOutput, nParamsPerCandle);
             NeuralNetwork.MakeTrainAndTestRandom(AllData, out TrainData, out TestData, nPrecentageToTrain);
+            this.ModelSegmentation = this.CalcModelSegmentation(this.numOutput, AllData);
 
             // Normalizing Data
             NormalizedTraingData = NeuralNetwork.NormalizeMatrix(TrainData, TrainData[0].Length - numOutput);
@@ -219,7 +218,7 @@ namespace MBTrading
             nn.Train(NormalizedTraingData, maxEpochsLoop, learnRate, momentum, weightDecay, meanSquaredError);
 
             // Accuracy check   
-            nn.AccuracyRate = nn.Accuracy(NormalizedTestData);
+            nn.AccuracyRate = nn.Accuracy(NormalizedTestData, this.nPossitiveIndex);
 
             // Set the new NeuralNetwork as the Current
             this.NN = nn;
@@ -235,7 +234,7 @@ namespace MBTrading
                 arrPredictSet = MakeNeuralNetworkDataMatrix(false, nCandlesPerSample, numOutput, nParamsPerCandle);
                 this.NN.RawTrainData[this.NN.RawTrainData.Length - 1] = arrPredictSet[0];
                 arrNormalizePredictionMatrix = NeuralNetwork.NormalizeMatrix(this.NN.RawTrainData, this.NN.RawTrainData[0].Length - numOutput);
-                nPrediction = this.NN.Predict(arrNormalizePredictionMatrix[arrNormalizePredictionMatrix.Length - 1]);
+                nPrediction = this.NN.Predict(arrNormalizePredictionMatrix[arrNormalizePredictionMatrix.Length - 1], this.nPossitiveIndex);
 
                 this.Candles[this.CountDec - 1].ZigZagPrediction = nPrediction;
             }
@@ -244,7 +243,7 @@ namespace MBTrading
         }
         public double[][] MakeNeuralNetworkDataMatrix(bool bIsTrainingMatrix, int nCandlesPerSample, int nOutputCount, int nParamsPerCandle)
         {
-            int nSamplesCount = this.NeuralNetworkData.Count(C => C.CandleIndex - nCandlesPerSample > -1);
+            int nSamplesCount = this.NeuralNetworkZigZagData.Count(C => C.CandleIndex - nCandlesPerSample > -1);
             int nCandlesListStart = bIsTrainingMatrix ? 0 : this.Candles.Count - nCandlesPerSample - 1;
             int nMatrixSizeToReturn = bIsTrainingMatrix ? nSamplesCount : 1;
             double[][] arrAllSampls = new double[nMatrixSizeToReturn][];
@@ -254,23 +253,31 @@ namespace MBTrading
 
             if (bIsTrainingMatrix)
             {
-                foreach (ZigZagData zzCurr in this.NeuralNetworkData)
+                foreach (ZigZagData zzCurr in this.NeuralNetworkZigZagData)
                 {
                     int nStart = zzCurr.CandleIndex - nCandlesPerSample;
-                    
+
                     if (nStart > -1)
                     {
                         arrSample = new double[nCandlesPerSample * nParamsPerCandle + nOutputCount];
                         for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < zzCurr.CandleIndex; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
                         {
-                            cCurrCandle = this.NeuralNetworkCandlesData[nZZindex];
+                            cCurrCandle = this.NeuralNetworkRawData[nZZindex];
                             arrSample[nSampleCandleIndex + 0] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.R_High);
                             arrSample[nSampleCandleIndex + 1] = MathUtils.PercentChange(cCurrCandle.ExtraList[1], cCurrCandle.ExtraList[2]);
                             arrSample[nSampleCandleIndex + 2] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.ExtraList[1]);
                             arrSample[nSampleCandleIndex + 3] = MathUtils.PercentChange(cCurrCandle.ExtraList[2], cCurrCandle.R_High);
-                            arrSample[nSampleCandleIndex + 4] = cCurrCandle.WMADirection ? 1 : 0;
-                            arrSample[nSampleCandleIndex + 5] = cCurrCandle.EMADirection ? 1 : 0;
-                            arrSample[nSampleCandleIndex + 6] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
+                            arrSample[nSampleCandleIndex + 4] = cCurrCandle.ExtraList[4] - cCurrCandle.ExtraList[5];
+                            arrSample[nSampleCandleIndex + 5] = cCurrCandle.ExtraList[6] - cCurrCandle.ExtraList[7];
+                            arrSample[nSampleCandleIndex + 6] = cCurrCandle.ExtraList[6] - ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2);
+                            arrSample[nSampleCandleIndex + 7] = ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2) - cCurrCandle.ExtraList[7];
+                            arrSample[nSampleCandleIndex + 4] = double.IsNaN(arrSample[nSampleCandleIndex + 4]) ? 0 : arrSample[nSampleCandleIndex + 4];
+                            arrSample[nSampleCandleIndex + 5] = double.IsNaN(arrSample[nSampleCandleIndex + 5]) ? 0 : arrSample[nSampleCandleIndex + 5];
+                            arrSample[nSampleCandleIndex + 6] = double.IsNaN(arrSample[nSampleCandleIndex + 6]) ? 0 : arrSample[nSampleCandleIndex + 6];
+                            arrSample[nSampleCandleIndex + 7] = double.IsNaN(arrSample[nSampleCandleIndex + 7]) ? 0 : arrSample[nSampleCandleIndex + 7];
+                            arrSample[nSampleCandleIndex + 8] = cCurrCandle.WMADirection ? 1 : 0;
+                            arrSample[nSampleCandleIndex + 9] = cCurrCandle.EMADirection ? 1 : 0;
+                            arrSample[nSampleCandleIndex + 10] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
                         }
 
                         arrSample[nCandlesPerSample * nParamsPerCandle + (int)zzCurr.Indication] = 1;
@@ -280,7 +287,7 @@ namespace MBTrading
             }
             else
             {
-                int nStart = this.CountDec - 21;
+                int nStart = this.CountDec - nCandlesPerSample;
 
                 if (nStart > -1)
                 {
@@ -292,9 +299,17 @@ namespace MBTrading
                         arrSample[nSampleCandleIndex + 1] = MathUtils.PercentChange(cCurrCandle.ExtraList[1], cCurrCandle.ExtraList[2]);
                         arrSample[nSampleCandleIndex + 2] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.ExtraList[1]);
                         arrSample[nSampleCandleIndex + 3] = MathUtils.PercentChange(cCurrCandle.ExtraList[2], cCurrCandle.R_High);
-                        arrSample[nSampleCandleIndex + 4] = cCurrCandle.WMADirection ? 1 : 0;
-                        arrSample[nSampleCandleIndex + 5] = cCurrCandle.EMADirection ? 1 : 0;
-                        arrSample[nSampleCandleIndex + 6] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 4] = cCurrCandle.ExtraList[4] - cCurrCandle.ExtraList[5];
+                        arrSample[nSampleCandleIndex + 5] = cCurrCandle.ExtraList[6] - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 6] = cCurrCandle.ExtraList[6] - ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2);
+                        arrSample[nSampleCandleIndex + 7] = ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2) - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 4] = double.IsNaN(arrSample[nSampleCandleIndex + 4]) ? 0 : arrSample[nSampleCandleIndex + 4];
+                        arrSample[nSampleCandleIndex + 5] = double.IsNaN(arrSample[nSampleCandleIndex + 5]) ? 0 : arrSample[nSampleCandleIndex + 5];
+                        arrSample[nSampleCandleIndex + 6] = double.IsNaN(arrSample[nSampleCandleIndex + 6]) ? 0 : arrSample[nSampleCandleIndex + 6];
+                        arrSample[nSampleCandleIndex + 7] = double.IsNaN(arrSample[nSampleCandleIndex + 7]) ? 0 : arrSample[nSampleCandleIndex + 7];
+                        arrSample[nSampleCandleIndex + 8] = cCurrCandle.WMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 9] = cCurrCandle.EMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 10] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
                     }
 
                     arrAllSampls[0] = arrSample;
@@ -302,6 +317,120 @@ namespace MBTrading
             }
 
             return (arrAllSampls);
+        }
+        /* Run over all candles
+        public double[][] MakeNeuralNetworkDataMatrix(bool bIsTrainingMatrix, int nCandlesPerSample, int nOutputCount, int nParamsPerCandle)
+        {
+            
+            int nSamplesCount = this.NeuralNetworkRawData.Count - nCandlesPerSample;
+            int nCandlesListStart = bIsTrainingMatrix ? 0 : this.Candles.Count - nCandlesPerSample - 1;
+            int nMatrixSizeToReturn = bIsTrainingMatrix ? nSamplesCount : 1;
+            double[][] arrAllSampls = new double[nMatrixSizeToReturn][];
+            double[] arrSample;
+            int nSampleIndex = 0;
+            Candle cCurrCandle;
+
+            if (bIsTrainingMatrix)
+            {
+                for (int nSampleOffset = nCandlesPerSample; nSampleOffset < this.NeuralNetworkRawData.Count; nSampleOffset++)
+                {
+                    int nStart = nSampleOffset - nCandlesPerSample;
+
+                    arrSample = new double[nCandlesPerSample * nParamsPerCandle + nOutputCount];
+                    for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < nSampleOffset; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
+                    {
+                        cCurrCandle = this.NeuralNetworkRawData[nZZindex];
+                        arrSample[nSampleCandleIndex + 0] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.R_High);
+                        arrSample[nSampleCandleIndex + 1] = MathUtils.PercentChange(cCurrCandle.ExtraList[1], cCurrCandle.ExtraList[2]);
+                        arrSample[nSampleCandleIndex + 2] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.ExtraList[1]);
+                        arrSample[nSampleCandleIndex + 3] = MathUtils.PercentChange(cCurrCandle.ExtraList[2], cCurrCandle.R_High);
+                        arrSample[nSampleCandleIndex + 4] = cCurrCandle.ExtraList[4] - cCurrCandle.ExtraList[5];
+                        arrSample[nSampleCandleIndex + 5] = cCurrCandle.ExtraList[6] - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 6] = cCurrCandle.ExtraList[6] - ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2);
+                        arrSample[nSampleCandleIndex + 7] = ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2) - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 4] = double.IsNaN(arrSample[nSampleCandleIndex + 4]) ? 0 : arrSample[nSampleCandleIndex + 4];
+                        arrSample[nSampleCandleIndex + 5] = double.IsNaN(arrSample[nSampleCandleIndex + 5]) ? 0 : arrSample[nSampleCandleIndex + 5];
+                        arrSample[nSampleCandleIndex + 6] = double.IsNaN(arrSample[nSampleCandleIndex + 6]) ? 0 : arrSample[nSampleCandleIndex + 6];
+                        arrSample[nSampleCandleIndex + 7] = double.IsNaN(arrSample[nSampleCandleIndex + 7]) ? 0 : arrSample[nSampleCandleIndex + 7];
+                        arrSample[nSampleCandleIndex + 8] = cCurrCandle.WMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 9] = cCurrCandle.EMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 10] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
+                    }
+
+                    if (NeuralNetworkZigZagData.ContainsKey(nSampleOffset))
+                    {
+                        arrSample[nCandlesPerSample * nParamsPerCandle + ((int)NeuralNetworkZigZagData[nSampleOffset].Indication * 2)] = 1;
+                    }
+                    else
+                    {
+                        arrSample[nCandlesPerSample * nParamsPerCandle + 1] = 1;
+                    }
+
+                    arrAllSampls[nSampleIndex++] = arrSample;
+                }
+            }
+            else
+            {
+                int nStart = this.CountDec - nCandlesPerSample;
+
+                if (nStart > -1)
+                {
+                    arrSample = new double[nCandlesPerSample * nParamsPerCandle + nOutputCount];
+                    for (int nZZindex = nStart, nSampleCandleIndex = 0; nZZindex < this.CountDec; nZZindex++, nSampleCandleIndex += nParamsPerCandle)
+                    {
+                        cCurrCandle = this.Candles[nZZindex];
+                        arrSample[nSampleCandleIndex + 0] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.R_High);
+                        arrSample[nSampleCandleIndex + 1] = MathUtils.PercentChange(cCurrCandle.ExtraList[1], cCurrCandle.ExtraList[2]);
+                        arrSample[nSampleCandleIndex + 2] = MathUtils.PercentChange(cCurrCandle.R_Low, cCurrCandle.ExtraList[1]);
+                        arrSample[nSampleCandleIndex + 3] = MathUtils.PercentChange(cCurrCandle.ExtraList[2], cCurrCandle.R_High);
+                        arrSample[nSampleCandleIndex + 4] = cCurrCandle.ExtraList[4] - cCurrCandle.ExtraList[5];
+                        arrSample[nSampleCandleIndex + 5] = cCurrCandle.ExtraList[6] - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 6] = cCurrCandle.ExtraList[6] - ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2);
+                        arrSample[nSampleCandleIndex + 7] = ((cCurrCandle.ExtraList[4] + cCurrCandle.ExtraList[5]) / 2) - cCurrCandle.ExtraList[7];
+                        arrSample[nSampleCandleIndex + 4] = double.IsNaN(arrSample[nSampleCandleIndex + 4]) ? 0 : arrSample[nSampleCandleIndex + 4];
+                        arrSample[nSampleCandleIndex + 5] = double.IsNaN(arrSample[nSampleCandleIndex + 5]) ? 0 : arrSample[nSampleCandleIndex + 5];
+                        arrSample[nSampleCandleIndex + 6] = double.IsNaN(arrSample[nSampleCandleIndex + 6]) ? 0 : arrSample[nSampleCandleIndex + 6];
+                        arrSample[nSampleCandleIndex + 7] = double.IsNaN(arrSample[nSampleCandleIndex + 7]) ? 0 : arrSample[nSampleCandleIndex + 7];
+                        arrSample[nSampleCandleIndex + 8] = cCurrCandle.WMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 9] = cCurrCandle.EMADirection ? 1 : 0;
+                        arrSample[nSampleCandleIndex + 10] = cCurrCandle.R_Close > cCurrCandle.R_Open ? 1 : 0;
+                    }
+
+                    arrAllSampls[0] = arrSample;
+                }
+            }
+
+            return (arrAllSampls);
+        }
+         * */
+
+        public List<double> CalcModelSegmentation(int nNumOfOutputs, double[][] data)
+        {
+            int nOutputIndex = 0;
+
+            List<double> lstToRet = new List<double>();
+            for (int i = 0; i < nNumOfOutputs; i++) { lstToRet.Add(0); }
+
+            foreach (double[] currArr in data)
+            {
+                nOutputIndex = 0;
+                for (int nOutputOffset = currArr.Length - nNumOfOutputs; nOutputOffset < currArr.Length; nOutputOffset++)
+                {
+                    if (currArr[nOutputOffset] == 1)
+                    {
+                        lstToRet[nOutputIndex]++;
+                    }
+
+                    nOutputIndex++;
+                }
+            }
+
+            for (int nSegmentIndex = 0; nSegmentIndex < lstToRet.Count; nSegmentIndex++) 
+            {
+                lstToRet[nSegmentIndex] = lstToRet[nSegmentIndex] / data.Length * 100;
+            }
+
+            return (lstToRet);
         }
     }
 }

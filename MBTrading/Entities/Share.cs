@@ -616,7 +616,7 @@ namespace MBTrading
         public void OffLineBuy(double dStopLoss, bool bStrategy)
         {
             if ((!this.NNActive) || (this.CandlesList.NN == null) ||
-                ((this.CandlesList.NN.AccuracyRate > 0.6) && 
+                (//(this.CandlesList.NN.AccuracyRate > 0.6) && 
                  ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction > 0.75) || 
                   (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ZigZagPrediction > 0.75))))
             {

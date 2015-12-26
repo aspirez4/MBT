@@ -35,13 +35,13 @@ namespace MBTrading.Entities.Indicators
         double  dLastHigh       = 0;
         double  dLastLow        = 0;
 
-        public  int Length              = 200;
+        public  int Length              = 110;  // Minimum 101
         private int nZigZagCalculationStartIndex;
-        private int nUserExtDepth       = 5; // Origainaly 12
+        private int nUserExtDepth       = 5;    // Origainaly 12
         private int nUserExtDeviation   = 5;
         private int nUserExtBackstep    = 3;
-        private int nLevel              = 3; // recounting depth
-        private double dDeviation;           // deviation in points
+        private int nLevel              = 3;    // recounting depth
+        private double dDeviation;              // deviation in points
 
 
         public ZigZag(int nZigZagDepth, bool bNNActivation)

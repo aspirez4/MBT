@@ -60,7 +60,7 @@ namespace MBTrading
                 string strQuotesFolder = "C:\\Users\\Or\\Projects\\Quotes\\Processed\\";
                 
 
-                for (int nIndex = 0; nIndex < /* Directory.GetFiles(strQuotesFolder).Length */ 200; nIndex++)
+                for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length /* 200 */; nIndex++)
                 {
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);

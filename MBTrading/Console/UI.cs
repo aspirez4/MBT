@@ -95,7 +95,9 @@ namespace MBTrading
             double dTotalPLSum = 0;
             double dTotalCommSum = 0;
             double dCurrPLSum = 0;
-            
+            double dAccuracy = 0;
+            double dAccuracyCount = 0;
+
             foreach (Share sCurrShare in Program.SharesList.Values)
             {
                 sCurrShare.CurrPL = FixGatewayUtils.CalculateProfit(sCurrShare.BuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
@@ -108,7 +110,7 @@ namespace MBTrading
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
                                            sCurrShare.Symbol,
                                            string.Format("{0,10:0.00000}", sCurrShare.CandlesList.CurrPrice),
-                                           string.Format("{0,10:0.00000}", sCurrShare.CandlesList.EMA.Value),
+                                           sCurrShare.CandlesList.NN == null ? "0" : sCurrShare.CandlesList.NN.NormalizedTestData.Length + ": " + string.Format("{0,10:0.0}", sCurrShare.CandlesList.NN.AccuracyRate * 100),
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.BuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.BuyPrice),
@@ -118,9 +120,14 @@ namespace MBTrading
                                            string.Format("{0,10:0.0}", sCurrShare.TotalPL),
                                            string.Format("{0,10:0.00}", sCurrShare.Commission));
 
+                if (sCurrShare.CandlesList.NN != null)
+                {
+                    dAccuracy += (sCurrShare.CandlesList.NN.AccuracyRate * 100);
+                    dAccuracyCount++;
+                }
             }
 
-            Console.WriteLine(string.Format("{0}{1}{2}{3}\n\n\n----------------------------------\nCurr  PL   :   {4}\n----------------------------------\nTotal Comm :   -{5}\nTotal PL   :   {6}\nTotal      :   {7}\n----------------------------------{8}", UI.strMBTradingTitle, strTechDetails, strTableTitle, strShares, dCurrPLSum, dTotalCommSum, dTotalPLSum, dTotalPLSum - dTotalCommSum, strLastCandles));
+            Console.WriteLine(string.Format("{0}{1}{2}{3}\n\n\n----------------------------------\nCurr  PL   :   {4}\n----------------------------------\nTotal Comm :   -{5}\nTotal PL   :   {6}\nTotal      :   {7}\n----------------------------------{8}", UI.strMBTradingTitle, strTechDetails, strTableTitle, strShares, dCurrPLSum, dTotalCommSum, dTotalPLSum, dTotalPLSum - dTotalCommSum, string.Format("{0,10:0.0}", dAccuracy / dAccuracyCount)));
             Program.AccountBallance = Consts.QUANTITY + dTotalPLSum - dTotalCommSum;
             PushServer.SendTCPMessage(PushServer.RealtimeMessage(Program.AccountBallance, dTotalProfitSum, dTotalLossSum, Program.SharesList));
             PushServer.SendTCPMessage("2");

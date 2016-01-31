@@ -45,7 +45,7 @@ namespace MBTrading
         public int P, N              = 0;
         public int nPossitiveIndex   = 0;
         int     nPrecentageToTrain   = 75;
-        int     nCandlesPerSample    = 21;       //48;
+        int     nCandlesPerSample    = 10;       //48;
         int     nParamsPerCandle     = 11;
         int     numOutput            = 3;
         int     maxEpochsLoop        = 50;       // 2000

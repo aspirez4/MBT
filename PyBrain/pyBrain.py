@@ -18,31 +18,16 @@ nInputCount = 2
 nHiddenCount = 3
 nOutputCount = 1
 
-## Set the net and layers
-#elmanNN = RecurrentNetwork()
-#elmanNN.addInputModule(LinearLayer(nInputCount, name='inputLayer'))
-#elmanNN.addModule(SigmoidLayer(nHiddenCount, name='hiddenLayer'))
-#elmanNN.addOutputModule(LinearLayer(nOutputCount, name='outputLayer'))
-#
-## Set the connections
-#elmanNN.addConnection(FullConnection(elmanNN['inputLayer'], elmanNN['hiddenLayer'], name='inputToHidden'))
-#elmanNN.addConnection(FullConnection(elmanNN['hiddenLayer'], elmanNN['outputLayer'], name='hiddenToOutput'))
-#elmanNN.addRecurrentConnection(FullConnection(elmanNN['hiddenLayer'], elmanNN['hiddenLayer'], name='hiddenToHidden'))
+# Set the net and layers
+elmanNN = RecurrentNetwork()
+elmanNN.addInputModule(LinearLayer(nInputCount, name='inputLayer'))
+elmanNN.addModule(SigmoidLayer(nHiddenCount, name='hiddenLayer'))
+elmanNN.addOutputModule(LinearLayer(nOutputCount, name='outputLayer'))
 
-
-elmanNN = FeedForwardNetwork()
-inLayer = LinearLayer(nInputCount)
-hiddenLayer = SigmoidLayer(nHiddenCount)
-outLayer = SoftmaxLayer(nOutputCount)
-elmanNN.addInputModule(inLayer)
-elmanNN.addModule(hiddenLayer)
-elmanNN.addOutputModule(outLayer)
-in_to_hidden = FullConnection(inLayer, hiddenLayer)
-hidden_to_out = FullConnection(hiddenLayer, outLayer)
-elmanNN.addConnection(in_to_hidden)
-elmanNN.addConnection(hidden_to_out)
-
-
+# Set the connections
+elmanNN.addConnection(FullConnection(elmanNN['inputLayer'], elmanNN['hiddenLayer'], name='inputToHidden'))
+elmanNN.addConnection(FullConnection(elmanNN['hiddenLayer'], elmanNN['outputLayer'], name='hiddenToOutput'))
+elmanNN.addRecurrentConnection(FullConnection(elmanNN['hiddenLayer'], elmanNN['hiddenLayer'], name='hiddenToHidden'))
 
 # Build the net
 elmanNN.sortModules()

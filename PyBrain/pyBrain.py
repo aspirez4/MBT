@@ -15,14 +15,15 @@ from numpy.random import multivariate_normal
 
 # Initialize Variables
 nInputCount = 2
-nHiddenCount = 3
+nHiddenCount = 100
 nOutputCount = 1
 
 # Set the net and layers
 elmanNN = RecurrentNetwork()
 elmanNN.addInputModule(LinearLayer(nInputCount, name='inputLayer'))
-elmanNN.addModule(SigmoidLayer(nHiddenCount, name='hiddenLayer'))
-elmanNN.addOutputModule(LinearLayer(nOutputCount, name='outputLayer'))
+# elmanNN.addModule(LSTMLayer(nHiddenCount, peepholes=False, name='hiddenLayer'))
+elmanNN.addModule(SoftmaxLayer(nHiddenCount, name='hiddenLayer'))
+elmanNN.addOutputModule(SoftmaxLayer(nOutputCount, name='outputLayer'))
 
 # Set the connections
 elmanNN.addConnection(FullConnection(elmanNN['inputLayer'], elmanNN['hiddenLayer'], name='inputToHidden'))

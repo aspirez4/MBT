@@ -67,3 +67,44 @@ import pybrain
 
 
 
+
+
+
+
+
+
+
+
+
+###### Update pip (python 2.7.9+ / 3.4+)
+python -m pip install -U pip
+
+###### Donload and install Microsoft Visual C++ Compiler for Python 2.7
+https://www.microsoft.com/en-us/download/details.aspx?id=44266
+
+
+###### Install tensorflow
+easy_install --upgrade six
+pip install --upgrade https://storage.googleapis.com/tensorflow/mac/tensorflow-0.5.0-py2-none-any.whl
+
+
+
+easy_install -U six
+
+
+
+###### Test TensorFlow installation
+$ python
+...
+>>> import tensorflow as tf
+>>> hello = tf.constant('Hello, TensorFlow!')
+>>> sess = tf.Session()
+>>> print sess.run(hello)
+Hello, TensorFlow!
+>>> a = tf.constant(10)
+>>> b = tf.constant(32)
+>>> print sess.run(a + b)
+42
+>>>
+
+

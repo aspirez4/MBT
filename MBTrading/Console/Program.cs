@@ -20,6 +20,11 @@ namespace MBTrading
 
         public static void Main(string[] args)
         {
+            PythonUtils p = new PythonUtils("pyBrain.py", "NN");
+            p.CallFunction("InitElman");
+        }
+        public static void Main1(string[] args)
+        {
             Program.IsProgramAlive = true;
   
 

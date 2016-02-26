@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MBTrading.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,26 +54,9 @@ namespace MBTrading.Entities.Indicators
             this.TDI_Red = dTempTDI_Red / nRedPeriod;
             this.TDI_Green = (this.TDIRSIList[dTDIRSIListCountDec] + this.TDIRSIList[dTDIRSIListCountDec]) / nGreenPeriod;
 
-
-            double dFirstStandardDeviationOperand = 0;
-            double dSecondStandardDeviationOperand = 0;
-            double dAVG = 0;
-
-
             // Calculate avarage and StandardDeviation
-            foreach (double dCurrRSI in this.TDIRSIList)
-            {
-                dAVG += dCurrRSI;
-                dFirstStandardDeviationOperand += Math.Pow(dCurrRSI, 2);
-            }
-
-            dSecondStandardDeviationOperand = dAVG;
-
-            double RSI_MA = dAVG / this.TDIRSIList.Count;
-            double dStandardDeviation = Math.Sqrt(Math.Pow(RSI_MA, 2) +
-                                                  ((dFirstStandardDeviationOperand -
-                                                   (dSecondStandardDeviationOperand * 2 * RSI_MA)) /
-                                                   this.TDIRSIList.Count));
+            double RSI_MA = 0;
+            double dStandardDeviation = MathUtils.GetStandardDeviation(this.TDIRSIList, out RSI_MA);
 
             // Calculate TDIRSI Envelope
             this.TDI_Lower = RSI_MA - (dStandardDeviation * 1.6185);

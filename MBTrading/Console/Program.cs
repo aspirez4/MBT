@@ -18,12 +18,6 @@ namespace MBTrading
         public static double AccountBallance = Consts.QUANTITY;
         public static int nDayNum = 0;
 
-        public static void Main(string[] args)
-        {
-            PythonUtils.callTrainer();
-            Console.WriteLine("hello");
-            Console.ReadKey();
-        }
         public static void Main1(string[] args)
         {
             Program.IsProgramAlive = true;

@@ -11,9 +11,8 @@ namespace MBTrading
     public class CandlesList
     {
         // Neural Network
-        public List<Candle>                 NeuralNetworkRawData = new List<Candle>();
+        public List<double>                 NeuralNetworkRawData = new List<double>();
         public List<ZigZagData>             NeuralNetworkZigZagData = new List<ZigZagData>();
-        public List<NNOrder>                NeuralNetworkCollection = new List<NNOrder>();
         public List<double>                 ModelSegmentation = new List<double>();
         public NeuralNetwork                NN;
 
@@ -141,7 +140,7 @@ namespace MBTrading
                 MongoDBUtils.DBEventAfterCandleFinished(this.ParentShare, this.LastCandle);
 
                 // if (this.NeuralNetworkRawData.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES) { this.NeuralNetworkRawData.RemoveAt(0); }
-                this.NeuralNetworkRawData.Add(this.LastCandle);
+                this.NeuralNetworkRawData.Add(Math.Log(this.LastCandle.R_Close/this.PrevCandle.R_Close, Math.E));
 
                 // New candle
                 Candle cCurrCandle = new Candle(mdCurrMarketData.Time,

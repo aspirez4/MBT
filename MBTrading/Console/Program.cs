@@ -20,8 +20,9 @@ namespace MBTrading
 
         public static void Main(string[] args)
         {
-            PythonUtils p = new PythonUtils("pyBrain.py", "NN");
-            p.CallFunction("InitElman");
+            PythonUtils.callTrainer();
+            Console.WriteLine("hello");
+            Console.ReadKey();
         }
         public static void Main1(string[] args)
         {

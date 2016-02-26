@@ -1,84 +1,66 @@
-﻿using IronPython.Hosting;
-using Microsoft.Scripting.Hosting;
-using Microsoft.Scripting.Runtime;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
-using System.Linq;
+using System.Net.Http;
 using System.Text;
-
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Net.Http.Headers;
 namespace MBTrading.Utils
 {
     public class PythonUtils
     {
-        private ScriptEngine engine;
-        private ScriptScope scope;
-        private ScriptSource source;
-        private CompiledCode compiled;
-        private object pythonClass;
-
-        public PythonUtils(string codePath, string className = "PyClass")
+        public static async void  callTrainer()
         {
-            var lang = Python.CreateLanguageSetup(null); 
-            lang.Options["Frames"] = ScriptingRuntimeHelpers.True;
-            var setup = new ScriptRuntimeSetup(); 
-            setup.LanguageSetups.Add(lang); 
-            var runtime = new ScriptRuntime(setup); 
-            var engine = runtime.GetEngine("py"); 
-            engine.ExecuteFile(codePath);
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.ExpectContinue = false;
+                client.BaseAddress = new Uri("http://127.0.0.1:4567"); 
+                double[] a = new double[] { 1, 2 };
+                double[] a1 = new double[] { 1 };
+                double[][] b = new double[][] { a, a1 };
+                double[][][] c = new double[][][] { b, b, b };
+                string s = c.ToString();
 
+                ElmanDataSet elmanData = new ElmanDataSet { dataSet = c };
+                string postBody = ElmanDataSet.JsonSerializer(elmanData);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+                //var response = await client.GetAsync("/train?data=[[[1,1,],[2]]]");
+                var response = await client.PostAsync("/train", new StringContent(postBody, Encoding.UTF8, "application/json"));
 
-            string code = File.ReadAllText(codePath);
-            
-            //creating engine and stuff
-            engine = Python.CreateEngine();
-            var sp = engine.GetSearchPaths();
-            sp.Add(@"c:\Program Files\IronPython 2.7");
-            sp.Add(@"c:\Program Files\IronPython 2.7\DLLs");
-            sp.Add(@"c:\Program Files\IronPython 2.7\Lib");
-            sp.Add(@"c:\Program Files\IronPython 2.7\Lib\site-packages");
-            sp.Add(@"c:\Users\Or\AppData\Local\Enthought\Canopy\User\Scripts");
-
-            engine.SetSearchPaths(sp);
-
-            scope = engine.CreateScope();
-
-            //loading and compiling code
-            source = engine.CreateScriptSourceFromString(code, Microsoft.Scripting.SourceCodeKind.Statements);
-            compiled = source.Compile();
-
-
-            var _runtime = engine.Runtime;
-            var scope1 = _runtime.ExecuteFile(codePath);
-
-
-            //now executing this code (the code should contain a class)
-            compiled.Execute(scope);
-
-            //now creating an object that could be used to access the stuff inside a python script
-            pythonClass = engine.Operations.Invoke(scope.GetVariable(className));
+                var responseString = await response.Content.ReadAsStringAsync();
+            }
         }
-
-        public void SetVariable(string variable, dynamic value)
-        {
-            scope.SetVariable(variable, value);
-        }
-
-        public dynamic GetVariable(string variable)
-        {
-            return scope.GetVariable(variable);
-        }
-
-        public void CallMethod(string method, params dynamic[] arguments)
-        {
-            engine.Operations.InvokeMember(pythonClass, method, arguments);
-        }
-
-        public dynamic CallFunction(string method, params dynamic[] arguments)
-        {
-            return engine.Operations.InvokeMember(pythonClass, method, arguments);
-        }
-
     }
+
+
+
+    [DataContract]
+    public class ElmanDataSet
+    {
+        [DataMember(Order = 1)]
+        public double[][][] dataSet { get; set; }
+        [DataMember(Order = 2)]
+        public double[] input { get; set; }
+
+
+        public static string JsonSerializer(ElmanDataSet objectToSerialize)
+        {
+            if (objectToSerialize == null)
+            {
+                throw new ArgumentException("objectToSerialize must not be null");
+            }
+            MemoryStream ms = null;
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(objectToSerialize.GetType());
+            ms = new MemoryStream();
+            serializer.WriteObject(ms, objectToSerialize);
+            ms.Seek(0, SeekOrigin.Begin);
+            StreamReader sr = new StreamReader(ms);
+            return sr.ReadToEnd();
+        }
+    }
+
 }

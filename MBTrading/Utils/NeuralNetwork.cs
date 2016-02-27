@@ -10,20 +10,24 @@ namespace MBTrading.Utils
 {
     public class NeuralNetwork
     {
-        public double AccuracyRate;
-        public List<double> RawData;
-        public List<double> NormalizedData;
-        public int NN_MA_Length;
-        public string NNPort;
+        public double Accuracy;
+        public double ErrorRate;
+        private List<double> RawData;
+        private List<double> TempData;
+        private List<double> NormalizedData;
+        private int NN_MA_Length;
+        private string NNPort;
 
-        public NeuralNetwork(int nMA_Length, string strPort)
+        public NeuralNetwork(int nMA_Length, string strPort, List<double> lstRowData)
         {
             this.NNPort = strPort;
             this.NN_MA_Length = nMA_Length;
-            this.RawData = new List<double>();
+            this.RawData = new List<double>(lstRowData);
+            this.TempData = new List<double>(lstRowData);
+            for (int i = 0; i < nMA_Length; i++) { this.TempData.Add(0); };
             this.NormalizedData = new List<double>();
         }
-        public void KondratenkoKuperinNormalization()
+        public void KondratenkoKuperinDataSetNormalization()
         {
             // Calculate avarage and StandardDeviation
             double M = 0;
@@ -32,10 +36,29 @@ namespace MBTrading.Utils
             // Normalization formula by Kondratenko-Kuperin
             foreach (double dCurr in this.RawData)
             {
-                this.NormalizedData.Add(1 / (1 + (Math.E * ((M - dCurr) / dStandardDeviation))));
+                this.NormalizedData.Add(1 / (1 + Math.Pow(Math.E, (M - dCurr) / dStandardDeviation)));
             }
         }
-        public static double[][] NormalizeData(double[][] dataMatrix, int nCountOfColsToNormlize)
+        public void KondratenkoKuperinNormalization(List<double> lstToNormalize)
+        {
+            // Calculate avarage and StandardDeviation
+            double M = 0;
+
+            // Insect the temp lst to Normlize
+            for (int nReplaceIndex = 0; nReplaceIndex < lstToNormalize.Count; nReplaceIndex++)
+            {
+                this.TempData[this.TempData.Count - lstToNormalize.Count + nReplaceIndex] = lstToNormalize[nReplaceIndex];
+            }
+
+            double dStandardDeviation = MathUtils.GetStandardDeviation(this.TempData, out M);
+
+            // Normalization formula by Kondratenko-Kuperin
+            for (int nNormalizeIndex = 0; nNormalizeIndex < lstToNormalize.Count; nNormalizeIndex++)
+            {
+                lstToNormalize[nNormalizeIndex] = (1 / (1 + Math.Pow(Math.E, (M - lstToNormalize[nNormalizeIndex]) / dStandardDeviation)));
+            }
+        }
+        public static double[][] NormalizeDataSet(double[][] dataMatrix, int nCountOfColsToNormlize)
         {
             double[][] matrixToRet = new double[dataMatrix.Length][];
             for (int i = 0; i < dataMatrix.Length; ++i)
@@ -111,17 +134,17 @@ namespace MBTrading.Utils
 
             return arrToReturn;
         }
-        public async void Train(double[][] trainData, int maxEprochs, double learnRate, double momentum, double weightDecay, double dErrorBarrier)
+        public string Train()
         {
-            this.KondratenkoKuperinNormalization();
+            this.KondratenkoKuperinDataSetNormalization();
             ElmanDataSet elDataSet = new ElmanDataSet() { dataSet = this.PrepareElmanDataSet() };
-            await PythonUtils.CallNN(elDataSet, true, this.NNPort);
+            return (PythonUtils.CallNN(elDataSet, true, this.NNPort).Result);
         }
 
-        public double Predict(double dValue, double dValueMA)
+        public string Predict(double dValue, double dValueMA)
         {
             ElmanDataSet elDataSet = new ElmanDataSet() { input = new double[] { dValue, dValueMA }};
-            return double.Parse(PythonUtils.CallNN(elDataSet, false, this.NNPort).Result);
+            return (PythonUtils.CallNN(elDataSet, false, this.NNPort).Result);
         }
     }
 }

@@ -65,20 +65,6 @@ namespace MBTrading
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
-                    bool bAllEmpty = false;
-
-                    while (!bAllEmpty)
-                    {
-                        bAllEmpty = true;
-                        foreach (Share sCurrShare in Program.SharesList.Values)
-                        {
-                            if (sCurrShare.PricesQueue.Count != 0)
-                            {
-                                bAllEmpty = false;
-                                break;
-                            }
-                        }
-                    }
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Diagnostics;
 namespace MBTrading.Utils
 {
     public class PythonUtils
@@ -16,6 +17,7 @@ namespace MBTrading.Utils
         {
             using (var client = new HttpClient())
             {
+                client.Timeout = new TimeSpan(48, 0, 0);
                 client.DefaultRequestHeaders.ExpectContinue = false;
                 client.BaseAddress = new Uri(string.Format("http://127.0.0.1:{0}", strPort)); 
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -23,6 +25,26 @@ namespace MBTrading.Utils
                 var response = await client.PostAsync(bTrain ? "/train" : "/predict", new StringContent(ElmanDataSet.JsonSerializer(elmanData), Encoding.UTF8, "application/json"));
                 return await response.Content.ReadAsStringAsync();
             }
+        }
+
+        public static void StartPythonInstances()
+        {
+            int nPort = 4567;
+            Program.SymbolsPorts = new Dictionary<string,string>();
+            foreach (string strSymbol in Program.SharesList.Keys)
+            {
+                // Save the ports in dictionary
+                Program.SymbolsPorts.Add(strSymbol, nPort.ToString());
+
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.WindowStyle = ProcessWindowStyle.Normal;
+                startInfo.FileName = "cmd.exe";
+                startInfo.Arguments = string.Format("/c python ..\\..\\..\\..\\PyBrain\\pyBrainServer.py {0}", nPort.ToString());
+
+                // Start the NN process
+                Process.Start(startInfo);
+                nPort++;
+            }   
         }
     }
 

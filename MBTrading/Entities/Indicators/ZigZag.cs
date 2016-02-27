@@ -322,8 +322,8 @@ namespace MBTrading.Entities.Indicators
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
-            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length));
+//            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
+//                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length));
 
             // ZigZag NeuralNetwork
             if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))

@@ -3,11 +3,11 @@ import socket
 import BaseHTTPServer
 import json
 import random
+import sys
 from   urlparse import urlparse, parse_qs
 from   pyBrain  import NN
 
 HOST_NAME = 'localhost' # !!!REMEMBER TO CHANGE THIS!!!
-PORT_NUMBER = 4567 # Maybe set this to 9000.
 elmanInstance = None;
 
     
@@ -32,16 +32,16 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.end_headers()
         data = json.loads(s.rfile.read(int(s.headers['Content-Length'])))
         if (s.path.startswith("/train")):
-            elmanInstance.Train(dataSet = data['dataSet'])
+            s.wfile.write(elmanInstance.Train(dataSet = data['dataSet']))
         else:
-            elmanInstance.Predict(input = data['input'])
+            s.wfile.write(elmanInstance.Predict(input = data['input']))
         return
 
 if __name__ == '__main__':
     elmanInstance = NN()
     server_class = BaseHTTPServer.HTTPServer
-    httpd = server_class((HOST_NAME, PORT_NUMBER), MyHandler)
-    print time.asctime(), "Server Starts - %s:%s" % (HOST_NAME, PORT_NUMBER)
+    httpd = server_class((HOST_NAME, int(sys.argv[1])), MyHandler)
+    print time.asctime(), "Server Starts - %s:%s" % (HOST_NAME, int(sys.argv[1]))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

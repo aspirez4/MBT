@@ -17,24 +17,36 @@ namespace MBTrading.Utils
             {
                 client.DefaultRequestHeaders.ExpectContinue = false;
                 client.BaseAddress = new Uri("http://127.0.0.1:4567"); 
-                int[] a = new int[] { 1, 2 };
-                int[] a1 = new int[] { 1 };
-                int[][] b = new int[][] { a, a1 };
-                int[][][] c = new int[][][] { b, b, b };
+                double[] a = new double[] { 1, 2 };
+                double[] a1 = new double[] { 1 };
+                double[][] b = new double[][] { a, a1 };
+                double[][][] c = new double[][][] { b, b, b };
                 string s = c.ToString();
 
-                Person p = new Person { Name = "d", Age = 2 };
-                string postBody = PythonUtils.JsonSerializer(p);
+                ElmanDataSet elmanData = new ElmanDataSet { dataSet = c };
+                string postBody = ElmanDataSet.JsonSerializer(elmanData);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                var response = await client.GetAsync("/train?data=[[[1,1,],[2]]]");
-                var response1 = await client.PostAsync("/train", new StringContent(postBody, Encoding.UTF8, "application/json"));
+                //var response = await client.GetAsync("/train?data=[[[1,1,],[2]]]");
+                var response = await client.PostAsync("/train", new StringContent(postBody, Encoding.UTF8, "application/json"));
 
                 var responseString = await response.Content.ReadAsStringAsync();
             }
         }
+    }
 
-        public static string JsonSerializer(Person objectToSerialize)
+
+
+    [DataContract]
+    public class ElmanDataSet
+    {
+        [DataMember(Order = 1)]
+        public double[][][] dataSet { get; set; }
+        [DataMember(Order = 2)]
+        public double[] input { get; set; }
+
+
+        public static string JsonSerializer(ElmanDataSet objectToSerialize)
         {
             if (objectToSerialize == null)
             {
@@ -49,19 +61,6 @@ namespace MBTrading.Utils
             StreamReader sr = new StreamReader(ms);
             return sr.ReadToEnd();
         }
-
     }
-
-
-
-   [DataContract]
-   public class Person
-    {
-        [DataMember(Order=1)]
-        public string Name { get; set; }
-        [DataMember(Order=2)]
-        public int Age { get; set; }
-    }
-
 
 }

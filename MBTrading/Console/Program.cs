@@ -14,17 +14,12 @@ namespace MBTrading
     {
         public static ConcurrentDictionary<string, Share> SharesList { get; set; }
         public static Dictionary<string, byte[]> SymbolsNamesList { get; set; }
+        public static Dictionary<string, string> SymbolsPorts { get; set; }
         public static bool IsProgramAlive;
         public static double AccountBallance = Consts.QUANTITY;
         public static int nDayNum = 0;
 
         public static void Main(string[] args)
-        {
-            PythonUtils.callTrainer();
-            Console.WriteLine("hello");
-            Console.ReadKey();
-        }
-        public static void Main1(string[] args)
         {
             Program.IsProgramAlive = true;
   
@@ -48,6 +43,10 @@ namespace MBTrading
             // Initialize Shares 
             int nNumOfFails = 0;
             while ((!Program.InitializeShares()) && (nNumOfFails < 3)) { Thread.Sleep(60000); nNumOfFails++; }
+
+
+            // Start NN Server
+            new Thread(PythonUtils.StartPythonInstances).Start();
 
 
             // Activate Shares

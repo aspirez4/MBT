@@ -25,5 +25,29 @@ namespace MBTrading.Utils
                 return (0.000001);
             }
         }
+
+        public static double GetStandardDeviation(List<double> lstSample, out double M)
+        {
+            double dFirstStandardDeviationOperand = 0;
+            double dSecondStandardDeviationOperand = 0;
+            double dSum = 0;
+
+            // Calculate avarage and StandardDeviation
+            foreach (double dCurr in lstSample)
+            {
+                dSum += dCurr;
+                dFirstStandardDeviationOperand += Math.Pow(dCurr, 2);
+            }
+
+            dSecondStandardDeviationOperand = dSum;
+
+            M = dSum / lstSample.Count;
+            return (Math.Sqrt(Math.Pow(M, 2) +
+                    ((dFirstStandardDeviationOperand -
+                    (dSecondStandardDeviationOperand * 2 * M)) /
+                    lstSample.Count)));
+
+        }
+
     }
 }

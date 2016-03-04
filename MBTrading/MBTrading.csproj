@@ -92,7 +92,6 @@
     <Compile Include="Entities\Integer.cs" />
     <Compile Include="Entities\MarketData.cs" />
     <Compile Include="Entities\MarketTime.cs" />
-    <Compile Include="Entities\NNOrder.cs" />
     <Compile Include="Entities\Order.cs" />
     <Compile Include="Entities\OrdersBook.cs" />
     <Compile Include="Entities\Share.cs" />

@@ -34,18 +34,26 @@ pip install --upgrade https://storage.googleapis.com/tensorflow/mac/tensorflow-0
 easy_install -U six
 
 
+
+docker-machine create --driver virtualbox Tensorflow
+docker-machine ls
+docker-machine env --shell cmd Tensorflow
+FOR /f "tokens=*" %i IN ('docker-machine env --shell cmd Tensorflow') DO %i
+docker run -it b.gcr.io/tensorflow/tensorflow
+
+
+
+
 ###### Test TensorFlow installation
 $ python
-...
->>> import tensorflow as tf
->>> hello = tf.constant('Hello, TensorFlow!')
->>> sess = tf.Session()
->>> print sess.run(hello)
-Hello, TensorFlow!
->>> a = tf.constant(10)
->>> b = tf.constant(32)
->>> print sess.run(a + b)
-42
->>>
+
+import tensorflow as tf
+hello = tf.constant('Hello, TensorFlow!')
+sess = tf.Session()
+print sess.run(hello)
+
+a = tf.constant(10)
+b = tf.constant(32)
+print sess.run(a + b)
 
 

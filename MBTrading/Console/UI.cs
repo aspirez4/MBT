@@ -75,7 +75,6 @@ namespace MBTrading
         }
         public static void MainTableShares()
         {
-            string strLastCandles = "\n\n\n\nLast Candles:\n";
             string strTechDetails = "\n\nTechnical Details\n-----------------\nEST                             : {0}\nMBTrading QuouteAPI Last HB     : {1}\nMBTrading FixGW     Last HB     : {2}\nMBTrading LogonIndicator 	: {3}\nMBTrading ServerSeq             : {4}\nCandles                  	: {5}\nThreads                 	: {6}\nMonths                  	: {7}\n";
             strTechDetails = string.Format(strTechDetails,
                                            Time.EST,
@@ -110,7 +109,7 @@ namespace MBTrading
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
                                            sCurrShare.Symbol,
                                            string.Format("{0,10:0.00000}", sCurrShare.CandlesList.CurrPrice),
-                                           sCurrShare.CandlesList.NN == null ? "0" : sCurrShare.CandlesList.NN.NormalizedTestData.Length + ": " + string.Format("{0,10:0.0}", sCurrShare.CandlesList.NN.AccuracyRate * 100),
+                                           sCurrShare.CandlesList.NN == null ? "0" : sCurrShare.CandlesList.NeuralNetworkRawData.Count + ": " + string.Format("{0,10:0.0}", sCurrShare.CandlesList.LastCandle.Prediction * 100),
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.BuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.BuyPrice),
@@ -122,7 +121,7 @@ namespace MBTrading
 
                 if (sCurrShare.CandlesList.NN != null)
                 {
-                    dAccuracy += (sCurrShare.CandlesList.NN.AccuracyRate * 100);
+                    dAccuracy += (sCurrShare.CandlesList.NN.Accuracy * 100);
                     dAccuracyCount++;
                 }
             }

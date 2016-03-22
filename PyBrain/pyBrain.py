@@ -19,7 +19,7 @@ class NN:
     
     
     
-    def __init__( self, softmax = False, inCount = 2, hidCount = 100, outCount = 1 ):
+    def __init__( self, softmax = True, inCount = 2, hidCount = 100, outCount = 1 ):
         
         # Initialize Variables
         self.nInputCount = inCount
@@ -32,7 +32,7 @@ class NN:
         
         if (softmax):
             self.elmanNN.addModule(SoftmaxLayer(self.nHiddenCount, name='hiddenLayer'))
-            self.elmanNN.addOutputModule(SoftmaxLayer(self.nOutputCount, name='outputLayer'))
+            self.elmanNN.addOutputModule(LinearLayer(self.nOutputCount, name='outputLayer'))
         else:
             self.elmanNN.addModule(LSTMLayer(self.nHiddenCount, peepholes=False, name='hiddenLayer'))
             self.elmanNN.addOutputModule(LSTMLayer(self.nOutputCount, peepholes=False, name='outputLayer'))
@@ -43,21 +43,21 @@ class NN:
         self.elmanNN.addRecurrentConnection(FullConnection(self.elmanNN['hiddenLayer'], self.elmanNN['hiddenLayer'], name='hiddenToHidden'))
         
         # Build the net
-        # elmanNN = buildNetwork( self.nInputCount, self.nHiddenCount , self.nOutputCount , recurrent=True , hiddenclass=SoftmaxLayer , outclass=SoftmaxLayer )
+        # self.elmanNN = buildNetwork( self.nInputCount, self.nHiddenCount , self.nOutputCount , recurrent=True , hiddenclass=SoftmaxLayer , outclass=SoftmaxLayer )
         self.elmanNN.sortModules()
         
         return;
         
-    def Train( self, dataSet , epochs = 5000, elmanMomentum = 0.003):
+    def Train( self, dataSet , epochs = 500, elmanMomentum = 0.003, learningRate = 0.003 ):
         alldata = SupervisedDataSet(self.nInputCount, self.nOutputCount)
         for x in dataSet:
             alldata.addSample(x[0], x[1])
         
         dsTestDataSet, dsTrainingDataSet = alldata.splitWithProportion(0.25)
-        trainer = BackpropTrainer( self.elmanNN, dataset=dsTrainingDataSet, momentum=elmanMomentum, verbose=True, weightdecay=0.01)
+        trainer = BackpropTrainer( self.elmanNN, dataset=dsTrainingDataSet, learningrate=learningRate, momentum=elmanMomentum, verbose=True, weightdecay=0.01)		
         for i in range( epochs ):
-            trainer.train()	
-        return;
+            self.rate = trainer.train()	
+        return str(self.rate)
         
     def Predict( self, input ):
-        return self.elmanNN.activate(input)
+        return str(self.elmanNN.activate(input)[0])

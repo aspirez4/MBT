@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MBTrading.Utils;
 using MBTrading.Entities;
+using System.Collections.Generic;
 
 namespace MBTrading
 {
@@ -17,7 +18,8 @@ namespace MBTrading
         public double Risk = 0;
         public bool PartialMode = false;
 		public bool bWasPartiald = false;
-		
+        private List<double> tempList;
+
         public int                      nNeuralNetworkLearnCounter          = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
         public bool                     bDidFirstConditionHappened          = false;
         public bool                     bDidSecondConditionHappened         = false;
@@ -91,6 +93,8 @@ namespace MBTrading
             this.IsBuyOrderSentOrExecuted   = false;
             this.Symbol                     = strSymbol;
             this.PositionsReport            = false;
+            this.tempList                   = new List<double>();
+            for (int i = 0; i < 5; i++) { this.tempList.Add(0); }
         }
         public  void UpdateShareConsts()
         {
@@ -536,17 +540,37 @@ namespace MBTrading
                 Thread.Sleep(100);
                 this.OffLineCandleIndex++;
                 this.nNeuralNetworkLearnCounter--;
-                this.CandlesList.NeuralNetworPredict();
-                this.PrintOutPrediction();
+                if (this.CandlesList.NN != null)
+                {
+                    if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING) this.CandlesList.NeuralNetworkRawData.RemoveAt(0);
+                    
+                    int nOffset = this.CandlesList.NeuralNetworkRawData.Count - 1 - 5;
+                    for (int nTempIndex = 0; nTempIndex < 5; nTempIndex++)
+                    {
+                        this.tempList[nTempIndex] = this.CandlesList.NeuralNetworkRawData[nOffset + nTempIndex];
+                    }
+
+                    this.CandlesList.NN.KondratenkoKuperinNormalization(this.tempList);
+
+                    this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(this.tempList[this.tempList.Count - 1], this.tempList.Average());
+                   
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("9;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("8;{0};{1};{2}\n", this.Symbol, this.tempList.Average(), this.OffLineCandleIndex - 1));
+                }
             }
 
-            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkZigZagData.Count > 10))
+            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkRawData.Count > 10))
             {
                 nNeuralNetworkLearnCounter = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
                 this.CandlesList.NeuralNetworkActivate();
             }
             #endregion
 
+
+
+            /*
             #region Long!
             if (bIsNewCandle)
             {
@@ -559,17 +583,9 @@ namespace MBTrading
                     this.StopLoss = this.BuyPrice;
                 }
 
-                this.CrossEMALine = (this.CrossEMALine) || ((cPreviousCandle.EndWMA > cPreviousCandle.EndEMA) && (this.OffLineIsPosition));
-
-
-                if ((cPreviousCandle.EndTDI_Green > cPreviousCandle.EndTDI_Red) && 
-                    (cBeforePreviousCandle.EndTDI_Green < cBeforePreviousCandle.EndTDI_Red) &&
-                    (cPreviousCandle.EndTDI_Green < (cPreviousCandle.EndTDI_Upper - cPreviousCandle.EndTDI_Lower) * 0.5 + cPreviousCandle.EndTDI_Lower) )
+                if (!this.OffLineIsPosition)
                 {
-                    if (!this.OffLineIsPosition)
-                    {
-                        this.OffLineBuy(this.FindTheLastKnee(1), false);
-                    }
+                    this.OffLineBuy(this.FindTheLastKnee(1), false);
                 }
 
                 #region Sell conditions
@@ -604,7 +620,6 @@ namespace MBTrading
             }
             else
             {
-
                 // Sell if below stopLoss
                 if ((OffLineIsPosition) && (this.CandlesList.CurrPrice <= this.StopLoss))
                 {
@@ -612,13 +627,11 @@ namespace MBTrading
                 }
             }
             #endregion
+            */
         }
         public void OffLineBuy(double dStopLoss, bool bStrategy)
         {
-            if ((!this.NNActive) || (this.CandlesList.NN == null) ||
-                (//(this.CandlesList.NN.AccuracyRate > 0.6) && 
-                 ((this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction > 0.75) || 
-                  (this.CandlesList.Candles[this.CandlesList.CountDec - 2].ZigZagPrediction > 0.75))))
+            if (((!this.NNActive) && (this.CandlesList.NN == null)) || (this.CandlesList.LastCandle.Prediction > 0.75))
             {
                 // BUYYYYYYYYYYY
                 this.StartReversalIndex = 0;
@@ -682,17 +695,6 @@ namespace MBTrading
                 string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.CurrPrice, this.OffLineCandleIndex));
         }
         
-        public void PrintOutPrediction()
-        {
-            if (this.CandlesList.NN != null)
-            {
-                string strLable1 = this.CandlesList.NN.AccuracyRate.ToString() + " : " + this.CandlesList.Candles[this.CandlesList.CountDec - 2].ZigZagPrediction + " > " + this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction;
-                string strLable2 = this.CandlesList.Candles[this.CandlesList.CountDec - 1].ZigZagPrediction.ToString();
-
-                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                    string.Format("2;{0};{1};{2}\n", this.Symbol, strLable2, this.OffLineCandleIndex));
-            }
-        }
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {
             double dPossibleStopLoss = 0;
@@ -718,11 +720,11 @@ namespace MBTrading
 
                 if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
                 {
-                    this.StopLoss = dPossibleStopLoss;
-                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
-                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
+                    //this.StopLoss = dPossibleStopLoss;
+                    //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                    //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+                    //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                    //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
                 }
             }
         }

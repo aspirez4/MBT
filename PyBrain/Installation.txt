@@ -34,14 +34,11 @@ pip install --upgrade https://storage.googleapis.com/tensorflow/mac/tensorflow-0
 easy_install -U six
 
 
-
 docker-machine create --driver virtualbox Tensorflow
 docker-machine ls
 docker-machine env --shell cmd Tensorflow
 FOR /f "tokens=*" %i IN ('docker-machine env --shell cmd Tensorflow') DO %i
 docker run -it b.gcr.io/tensorflow/tensorflow
-
-
 
 
 ###### Test TensorFlow installation
@@ -55,5 +52,17 @@ print sess.run(hello)
 a = tf.constant(10)
 b = tf.constant(32)
 print sess.run(a + b)
+
+
+
+################################################
+#                   Theano                     #
+################################################
+
+####### Exsisting prog to configur in enviroment PATH
+gendef > בהתקנה של הGCC > WinGW
+cl > C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
+
+
 
 

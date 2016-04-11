@@ -59,10 +59,49 @@ print sess.run(a + b)
 #                   Theano                     #
 ################################################
 
-####### Exsisting prog to configur in enviroment PATH
-gendef > בהתקנה של הGCC > WinGW
-cl > C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
+0. install the following:
+	Microsoft Visual C++ Compiler for Python 2.7 (AND GREATER)
+	CUDA 5.5 (AND GREATER)
+	
+1. create folder C:\Users\Or\AppData\Local\SciSoft
 
+2. install the following:
+	TDM_Gcc64
+	WinPython-64bit-2.7.10.3
+	WinPython-64bit-3.5.1.2
+	
+3. add "C:\Users\Or\AppData\Local\SciSoft\TDM_Gcc64\x86_64-w64-mingw32\bin" to PATH
 
+4. Confirm all following works:
+	where gcc
+	where gendef
+	where cl
+	where nvcc
+	
+5. for boath WinPython do the following accordingly:
+	gendef C:\Users\Or\AppData\Local\SciSoft\WinPython-64bit-2.7.10.3\python-2.7.10.amd64\python27.dll
+	dlltool --dllname python27.dll --def python27.def --output-lib C:\Users\Or\AppData\Local\SciSoft\WinPython-64bit-2.7.10.3\python-2.7.10.amd64\libs\libpython27.a
 
+6. create env.bat file like:
+	REM configuration of paths
+	REM set VSFORPYTHON="C:\Program Files (x86)\Common Files\Microsoft\Visual C++ for Python\9.0"
+	set VSFORPYTHON="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC"
+	set SCISOFT=%~dp0
+	REM add tdm gcc stuff
+	set PATH=C:\Users\Or\AppData\Local\SciSoft\TDM_Gcc64\bin;C:\Users\Or\AppData\Local\SciSoft\TDM_Gcc64\x86_64-w64-mingw32\bin;%PATH%
+	REM add winpython stuff
+	REM CALL C:\Users\Or\AppData\Local\SciSoft\WinPython-64bit-3.5.1.2\scripts\env.bat
+	CALL C:\Users\Or\AppData\Local\SciSoft\WinPython-64bit-2.7.10.3\scripts\env.bat
+	REM configure path for msvc compilers
+	REM for a 32 bit installation change this line to
+	REM CALL %VSFORPYTHON%\vcvarsall.bat
+	CALL %VSFORPYTHON%\vcvarsall.bat amd64
+	REM return a shell
+	cmd.exe /k
+	
+7. create ".theanorc" file in: "C:\Users\Or\AppData\Local\SciSoft\WinPython-64bit-2.7.10.3\settings"
+	with the following configuration: 
 
+	[global]
+	device = cpu
+	floatX = float32

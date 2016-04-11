@@ -38,8 +38,13 @@ docker-machine create --driver virtualbox Tensorflow
 docker-machine ls
 docker-machine env --shell cmd Tensorflow
 FOR /f "tokens=*" %i IN ('docker-machine env --shell cmd Tensorflow') DO %i
-docker run -it b.gcr.io/tensorflow/tensorflow
+docker run -dit b.gcr.io/tensorflow/tensorflow
 
+wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tgz
+tar xf Python-3.5.1.tgz
+./configure
+make
+sudo make install
 
 ###### Test TensorFlow installation
 $ python

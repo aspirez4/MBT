@@ -22,6 +22,33 @@ namespace MBTrading.Utils
                 client.BaseAddress = new Uri(string.Format("http://127.0.0.1:{0}", strPort)); 
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+                StringBuilder sbInput  = new StringBuilder("[");
+                StringBuilder sbTarget = new StringBuilder("[");
+                for (int i = 0; i < elmanData.dataSet.Length; i++)
+			    {
+                    sbInput.Append("[");
+                    sbTarget.Append("[");
+
+                    for (int x = 0; x < 2; x++)
+                    {
+                        sbInput.Append(elmanData.dataSet[i][0][x] + ",");
+                    }
+
+                    for (int y = 0; y < 1; y++)
+                    {
+                        sbTarget.Append(elmanData.dataSet[i][1][y]);
+                    }
+
+                    sbInput.Append("],");
+                    sbTarget.Append("],");
+			    }
+                sbInput.Remove(sbInput.Length - 1, 1);
+                sbTarget.Remove(sbTarget.Length - 1, 1);
+                sbInput.Append("]");
+                sbTarget.Append("]");
+
+                string str = sbInput.ToString() + "," + sbTarget.ToString();
+
                 var response = await client.PostAsync(bTrain ? "/train" : "/predict", new StringContent(ElmanDataSet.JsonSerializer(elmanData), Encoding.UTF8, "application/json"));
                 return await response.Content.ReadAsStringAsync();
             }

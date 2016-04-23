@@ -13,113 +13,85 @@ namespace MBTrading.Utils
         public double Accuracy;
         public double ErrorRate;
         private List<double> RawData;
-        private List<double> TempData;
+        private List<double> TempDataForCalculationsAsModule;
         private List<double> NormalizedData;
         private int NN_MA_Length;
         private string NNPort;
+        private double M;
+        private double dStandardDeviation;
 
         public NeuralNetwork(int nMA_Length, string strPort, List<double> lstRowData)
         {
             this.NNPort = strPort;
             this.NN_MA_Length = nMA_Length;
             this.RawData = new List<double>(lstRowData);
-            this.TempData = new List<double>(lstRowData);
-            for (int i = 0; i < nMA_Length; i++) { this.TempData.Add(0); };
+            this.TempDataForCalculationsAsModule = new List<double>(lstRowData);
+            for (int i = 0; i < nMA_Length; i++) { this.TempDataForCalculationsAsModule.Add(0); };
             this.NormalizedData = new List<double>();
         }
-        public void KondratenkoKuperinDataSetNormalization()
+        
+        public List<double> KondratenkoKuperinNormalization(List<double> lstToNormalize)
         {
             // Calculate avarage and StandardDeviation
-            double M = 0;
-            double dStandardDeviation = MathUtils.GetStandardDeviation(this.RawData, out M);
+            this.M = 0;
+            this.dStandardDeviation = MathUtils.GetStandardDeviation(this.RawData, out this.M);
+            List<double> lstToReturn = new List<double>();
 
             // Normalization formula by Kondratenko-Kuperin
-            foreach (double dCurr in this.RawData)
+            foreach (double dCurr in lstToNormalize)
             {
-                this.NormalizedData.Add(1 / (1 + Math.Pow(Math.E, (M - dCurr) / dStandardDeviation)));
+                lstToReturn.Add(1 / (1 + Math.Pow(Math.E, (this.M - dCurr) / this.dStandardDeviation)));
             }
+           
+            return lstToReturn;
         }
-        public void KondratenkoKuperinNormalization(List<double> lstToNormalize)
+
+        public List<double> KondratenkoKuperinNormalizeAsModuleTrainingSet(List<double> lstToNormalize)
         {
             // Calculate avarage and StandardDeviation
-            double M = 0;
+            
 
             // Insect the temp lst to Normlize
             for (int nReplaceIndex = 0; nReplaceIndex < lstToNormalize.Count; nReplaceIndex++)
             {
-                this.TempData[this.TempData.Count - lstToNormalize.Count + nReplaceIndex] = lstToNormalize[nReplaceIndex];
+                this.TempDataForCalculationsAsModule[this.TempDataForCalculationsAsModule.Count - lstToNormalize.Count + nReplaceIndex] = lstToNormalize[nReplaceIndex];
             }
 
-            double dStandardDeviation = MathUtils.GetStandardDeviation(this.TempData, out M);
+            //MathUtils.GetStandardDeviation(this.TempDataForCalculationsAsModule, out M);
+            double dStandardDeviation = this.dStandardDeviation;
+            double M = this.M;
 
+            List<double> lstToReturn = new List<double>();
+                
             // Normalization formula by Kondratenko-Kuperin
             for (int nNormalizeIndex = 0; nNormalizeIndex < lstToNormalize.Count; nNormalizeIndex++)
             {
-                lstToNormalize[nNormalizeIndex] = (1 / (1 + Math.Pow(Math.E, (M - lstToNormalize[nNormalizeIndex]) / dStandardDeviation)));
-            }
-        }
-        public static double[][] NormalizeDataSet(double[][] dataMatrix, int nCountOfColsToNormlize)
-        {
-            double[][] matrixToRet = new double[dataMatrix.Length][];
-            for (int i = 0; i < dataMatrix.Length; ++i)
-                matrixToRet[i] = new double[dataMatrix[i].Length];
-
-            // normalize specified cols by computing (x - mean) / sd for each value
-            for (int col = 0; col < nCountOfColsToNormlize; col++)
-            {
-                double sum = 0.0;
-                for (int i = 0; i < dataMatrix.Length; ++i)
-                    sum += dataMatrix[i][col];
-                double mean = sum / dataMatrix.Length;
-                sum = 0.0;
-                for (int i = 0; i < dataMatrix.Length; ++i)
-                    sum += (dataMatrix[i][col] - mean) * (dataMatrix[i][col] - mean);
-                // thanks to Dr. W. Winfrey, Concord Univ., for catching bug in original code
-                double sd = Math.Sqrt(sum / (dataMatrix.Length - 1));
-                if (sd == 0)
-                {
-                    for (int i = 0; i < dataMatrix.Length; ++i)
-                        matrixToRet[i][col] = 0;
-                }
-                else
-                {
-                    for (int i = 0; i < dataMatrix.Length; ++i)
-                        matrixToRet[i][col] = (dataMatrix[i][col] - mean) / sd;
-                }
+                lstToReturn.Add(1 / (1 + Math.Pow(Math.E, (M - lstToNormalize[nNormalizeIndex]) / dStandardDeviation)));
             }
 
-            // Copy the rest of the cols without normlize
-            for (int col = nCountOfColsToNormlize; col < dataMatrix[0].Length; col++)
-            {
-                for (int row = 0; row < dataMatrix.Length; row++) 
-                {
-                    matrixToRet[row][col] = dataMatrix[row][col];
-                }
-            }
-            return (matrixToRet);
+            return lstToReturn;
         }
-        public double[][][] PrepareElmanDataSet()
+        public double[][][] PrepareElmanDataSet(List<double> lstListToSet)
         {
-            double[][][] arrToReturn = new double[this.NormalizedData.Count - this.NN_MA_Length][][];
+            double[][][] arrToReturn = new double[lstListToSet.Count - this.NN_MA_Length][][];
             List<double> lstMA = new List<double>();
 
             // First N values for prepering the inputs (AVG list)
             for (int nInitilizeIndex = 0; nInitilizeIndex < this.NN_MA_Length; nInitilizeIndex++)
 			{
-                lstMA.Add(this.NormalizedData[nInitilizeIndex]);
+                lstMA.Add(lstListToSet[nInitilizeIndex]);
 			}
 
-
-            double dInput1 = this.NormalizedData[this.NN_MA_Length - 1];
+            double dInput1 = lstListToSet[this.NN_MA_Length - 1];
             double dInput2 = lstMA.Average();
             double dOutput = 0;
             int nFinalArrayIndex = 0;
 
             // Run over all items in the list
-            for (int nIndex = this.NN_MA_Length; nIndex < this.NormalizedData.Count; nIndex++)
+            for (int nIndex = this.NN_MA_Length; nIndex < lstListToSet.Count; nIndex++)
             {
                 lstMA.RemoveAt(0);
-                lstMA.Add(this.NormalizedData[nIndex]);
+                lstMA.Add(lstListToSet[nIndex]);
                 
                 // Getting the output by the avg
                 dOutput = lstMA.Average();
@@ -128,23 +100,29 @@ namespace MBTrading.Utils
                 arrToReturn[nFinalArrayIndex++] = new double[][] { new double[] { dInput1, dInput2 }, new double[] { dOutput }};
 
                 // Get the inputValues for the next hop
-                dInput1 = this.NormalizedData[nIndex];
+                dInput1 = lstListToSet[nIndex];
                 dInput2 = dOutput;
             }
 
             return arrToReturn;
         }
+        
         public string Train()
         {
-            this.KondratenkoKuperinDataSetNormalization();
-            ElmanDataSet elDataSet = new ElmanDataSet() { dataSet = this.PrepareElmanDataSet() };
-            return (PythonUtils.CallNN(elDataSet, true, this.NNPort).Result);
+            this.NormalizedData = this.KondratenkoKuperinNormalization(this.RawData);
+            ElmanDataSet elDataSet = new ElmanDataSet() { dataSet = this.PrepareElmanDataSet(this.NormalizedData) };
+            return (PythonUtils.CallNN(elDataSet, true, this.NNPort, this.M, this.dStandardDeviation).Result);
         }
 
-        public string Predict(double dValue, double dValueMA)
+        public double Predict(double dValue, double dValueMA)
         {
-            ElmanDataSet elDataSet = new ElmanDataSet() { input = new double[] { dValue, dValueMA }};
-            return (PythonUtils.CallNN(elDataSet, false, this.NNPort).Result);
+            ElmanDataSet elDataSet = new ElmanDataSet() { input = new double[] { dValue, dValueMA } };
+            double dToReturn = 0;
+            string strPrediction = PythonUtils.CallNN(elDataSet, false, this.NNPort, this.M, this.dStandardDeviation).Result;
+            double dPrediction = double.Parse(strPrediction);
+            dToReturn = this.M - (Math.Log((1 / dPrediction) - 1, Math.E) * this.dStandardDeviation);
+
+            return (dToReturn);
         }
     }
 }

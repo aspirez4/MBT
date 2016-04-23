@@ -52,19 +52,35 @@ namespace MBTrading
             QuoteUtils.MarketDataStreamArrayUsageSize = QuoteUtils.MarketDataStreamArraySize - 10;
         }
 
+        public static   void Wait()
+        {
+            foreach (Share sCurrShare in Program.SharesList.Values)
+            {
+                while (sCurrShare.PricesQueue.Count > 10000)
+                {
+                    Thread.Sleep(300);
+                }
+            }
+        }
+
         // Static Methods - Quote API
         public static   void ConnectMBTQuoteAPI()
         {
             if (Consts.WorkOffLineMode)
             {
                 string strQuotesFolder = "C:\\Users\\Or\\Projects\\Quotes\\Processed\\";
-                
+                Directory.Delete(Consts.FilesPath + "\\Candles", true);
+                Directory.Delete("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b", true);
+                Directory.CreateDirectory("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b");
+                Directory.CreateDirectory(Consts.FilesPath + "\\Candles");
 
                 for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length /* 200 */; nIndex++)
                 {
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
+
+                    Wait();
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

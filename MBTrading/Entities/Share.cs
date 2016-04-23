@@ -550,9 +550,9 @@ namespace MBTrading
                         this.tempList[nTempIndex] = this.CandlesList.NeuralNetworkRawData[nOffset + nTempIndex];
                     }
 
-                    this.CandlesList.NN.KondratenkoKuperinNormalization(this.tempList);
+                    List<double> lstTempNormlized = this.CandlesList.NN.KondratenkoKuperinNormalizeAsModuleTrainingSet(this.tempList);
 
-                    this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(this.tempList[this.tempList.Count - 1], this.tempList.Average());
+                    this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(lstTempNormlized[lstTempNormlized.Count - 1], lstTempNormlized.Average());
                    
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                         string.Format("9;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));

@@ -183,19 +183,22 @@ namespace MBTrading
         {
             this.NN = new NeuralNetwork(5, Program.SymbolsPorts[this.ParentShare.Symbol], this.NeuralNetworkRawData);
             string strTrainResult = this.NN.Train();
-            this.NN.ErrorRate     = double.Parse(strTrainResult);
+            int nLast1 = strTrainResult.LastIndexOf(',');
+            int nLast2 = strTrainResult.LastIndexOf('[');
+            string strTrainingErrors = strTrainResult.Remove(0, Math.Max(nLast1, nLast2) + 1);
+            this.NN.ErrorRate = double.Parse(strTrainingErrors.Remove(strTrainingErrors.Length - 2, 2));
             //this.NN.Accuracy    = double.Parse(strTrainResult.Split(':')[1]);
         }
         public double NeuralNetworPredict(double dValue, double dValueMA)
         {
-            string strToReturn = "-100";
+            double dToReturn = -100;
 
             if ((this.NN != null) && (this.NN.ErrorRate < 1))
             {
-                strToReturn = this.NN.Predict(dValue, dValueMA);
+                dToReturn = this.NN.Predict(dValue, dValueMA);
             }
 
-            return (double.Parse(strToReturn));
+            return (dToReturn);
         }
     }
 }

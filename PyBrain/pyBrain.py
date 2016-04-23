@@ -19,7 +19,7 @@ class NN:
     
     
     
-    def __init__( self, softmax = True, inCount = 2, hidCount = 100, outCount = 1 ):
+    def __init__( self, softmax = False, inCount = 2, hidCount = 100, outCount = 1 ):
         
         # Initialize Variables
         self.nInputCount = inCount
@@ -31,8 +31,10 @@ class NN:
         self.elmanNN.addInputModule(LinearLayer(self.nInputCount, name='inputLayer'))
         
         if (softmax):
-            self.elmanNN.addModule(SoftmaxLayer(self.nHiddenCount, name='hiddenLayer'))
-            self.elmanNN.addOutputModule(LinearLayer(self.nOutputCount, name='outputLayer'))
+            #self.elmanNN.addModule(SoftmaxLayer(self.nHiddenCount, name='hiddenLayer'))
+            #self.elmanNN.addOutputModule(LinearLayer(self.nOutputCount, name='outputLayer'))
+            self.elmanNN.addModule(SigmoidLayer(self.nHiddenCount, name='hiddenLayer'))
+            self.elmanNN.addOutputModule(SigmoidLayer(self.nOutputCount, name='outputLayer'))
         else:
             self.elmanNN.addModule(LSTMLayer(self.nHiddenCount, peepholes=False, name='hiddenLayer'))
             self.elmanNN.addOutputModule(LSTMLayer(self.nOutputCount, peepholes=False, name='outputLayer'))
@@ -48,15 +50,17 @@ class NN:
         
         return;
         
-    def Train( self, dataSet , epochs = 500, elmanMomentum = 0.003, learningRate = 0.003 ):
+    def Train( self, dataSet , epochs = 20000, elmanMomentum = 0.003, learningRate = 0.003 ):
         alldata = SupervisedDataSet(self.nInputCount, self.nOutputCount)
         for x in dataSet:
             alldata.addSample(x[0], x[1])
         
         dsTestDataSet, dsTrainingDataSet = alldata.splitWithProportion(0.25)
         trainer = BackpropTrainer( self.elmanNN, dataset=dsTrainingDataSet, learningrate=learningRate, momentum=elmanMomentum, verbose=True, weightdecay=0.01)		
-        for i in range( epochs ):
-            self.rate = trainer.train()	
+        #for i in range( epochs ):
+        #    self.rate = trainer.train()	
+        self.rate = trainer.trainUntilConvergence(maxEpochs=epochs)
+        print self.rate
         return str(self.rate)
         
     def Predict( self, input ):

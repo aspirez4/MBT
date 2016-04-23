@@ -106,7 +106,6 @@ namespace MBTrading
             FilesPath                               = ConfigurationManager.AppSettings["FilesPath"];
 
 
-            NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES          = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES"]);
             NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE        = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE"]);
             NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING  = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING"]);
             WEBTRADING_SERVER_IP                    = ConfigurationManager.AppSettings["WEBTRADING_SERVER_IP"];

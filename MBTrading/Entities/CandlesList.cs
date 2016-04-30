@@ -181,13 +181,17 @@ namespace MBTrading
         // NeuralNetwork
         public void NeuralNetworkActivate()
         {
-            this.NN = new NeuralNetwork(5, Program.SymbolsPorts[this.ParentShare.Symbol], this.NeuralNetworkRawData);
+            this.NN = new NeuralNetwork(5, Program.SymbolsPorts[this.ParentShare.Symbol], this.NeuralNetworkRawData, this.ParentShare.Symbol);
             string strTrainResult = this.NN.Train();
-            int nLast1 = strTrainResult.LastIndexOf(',');
-            int nLast2 = strTrainResult.LastIndexOf('[');
-            string strTrainingErrors = strTrainResult.Remove(0, Math.Max(nLast1, nLast2) + 1);
-            this.NN.ErrorRate = double.Parse(strTrainingErrors.Remove(strTrainingErrors.Length - 2, 2));
-            //this.NN.Accuracy    = double.Parse(strTrainResult.Split(':')[1]);
+
+            if (strTrainResult != null)
+            {
+                int nLast1 = strTrainResult.LastIndexOf(',');
+                int nLast2 = strTrainResult.LastIndexOf('[');
+                string strTrainingErrors = strTrainResult.Remove(0, Math.Max(nLast1, nLast2) + 1);
+                this.NN.ErrorRate = double.Parse(strTrainingErrors.Remove(strTrainingErrors.Length - 2, 2));
+                //this.NN.Accuracy    = double.Parse(strTrainResult.Split(':')[1]);
+            }
         }
         public double NeuralNetworPredict(double dValue, double dValueMA)
         {

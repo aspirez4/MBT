@@ -93,7 +93,7 @@ class NN:
         return values
 
     def __init__( self, inCount = 2, hidCount = 100, outCount = 1, nEpochs = 20000, learningRate = 0.003 ):
-
+        print 'Start initializig NN . . .'
         self.dtype = theano.config.floatX
         n_hidden = n_i = n_c = n_o = n_f = hidCount
         # therefore we use the logistic function
@@ -101,6 +101,7 @@ class NN:
         # for the other activation function we use the tanh
         self.act = T.tanh
 
+        print '* Set weights'
         # initialize weights
         # i_t and o_t should be "open" or "closed"
         # f_t should be "open" (don't forget at the beginning of training)
@@ -125,6 +126,7 @@ class NN:
         c0   = theano.shared(np.zeros(n_hidden, dtype=self.dtype))
         h0   = T.tanh(c0)
         params = [W_xi, W_hi, W_ci, b_i, W_xf, W_hf, W_cf, b_f, W_xc, W_hc, b_c, self.W_xo, W_ho, self.W_co, b_o, W_hy, b_y, c0]
+        print '* Set epoches to - {}'.format(nEpochs)
 
         #input 
         v = T.matrix(dtype=self.dtype)
@@ -133,6 +135,7 @@ class NN:
         target = T.matrix(dtype=self.dtype)
         
         # hidden and outputs of the entire sequence
+        print '* Set architecture'
         [h_vals, _, y_vals], _ = theano.scan(fn=self.oneLSTMstep, 
                                           sequences = dict(input=v, taps=[0]), 
                                           outputs_info = [h0, c0, None ], # corresponds to return type of fn
@@ -152,11 +155,13 @@ class NN:
         updates=[]
         for param, gparam in zip(params, gparams):
             updates.append((param, param - gparam * learningRateShared))
-
+        print '* Set learning function'
         self.learningFunction = theano.function(inputs = [v, target],
                                                 outputs = cost,
                                                 updates = updates)
 
         self.epochs = nEpochs       
         self.trainingErrors = np.ndarray(nEpochs)
+        print '* Set prediction function'
         self.predictFunction = theano.function(inputs = [v], outputs = y_vals)
+        print 'Initialize Done!'

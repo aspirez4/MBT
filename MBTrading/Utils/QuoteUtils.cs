@@ -10,21 +10,6 @@ using System.Collections;
 
 namespace MBTrading
 {
-    public class SetML
-    {
-        public int PatternLength;
-        public int OutcomeInterval;
-        public double Outcome;
-        public SetML(int nPatternLength,
-                     int nOutcomeInterval,
-                     double dOutcome)
-        {
-            this.PatternLength = nPatternLength;
-            this.OutcomeInterval = nOutcomeInterval;
-            this.Outcome = dOutcome;
-        }
-    }
-
     public static class QuoteUtils
     {
         // Static Data Members
@@ -80,7 +65,7 @@ namespace MBTrading
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
 
-                    Wait();
+                   Wait();
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

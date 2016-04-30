@@ -5,7 +5,7 @@ import json
 import random
 import sys
 from   urlparse    import urlparse, parse_qs
-from   TheanoLSTM  import NN
+from   serviceLSTM import NN
 
 HOST_NAME = 'localhost' # !!!REMEMBER TO CHANGE THIS!!!
 lstm = None;
@@ -24,11 +24,14 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if (s.path.startswith("/train")):
             lstm.train(inData = data['input'], outData = data['target'])
             s.wfile.write(lstm.test())
-        else:
+        elif (s.path.startswith("/predict")):
             s.wfile.write(lstm.predict(inData = data['input']))
+        else:
+            s.wfile.write('ok')
         return
 
 if __name__ == '__main__':
+    print '\n\n\nServerLSTM - Hello!'
     lstm = NN( nEpochs = int(sys.argv[2]) )
     server_class = BaseHTTPServer.HTTPServer
     httpd = server_class((HOST_NAME, int(sys.argv[1])), MyHandler)

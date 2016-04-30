@@ -46,7 +46,7 @@ namespace MBTrading
 
 
             // Start NN Server
-            new Thread(PythonUtils.StartPythonInstances).Start();
+            new Thread(() => PythonUtils.StartPythonInstances_SeparateProcesses(true)).Start();
 
 
             // Activate Shares

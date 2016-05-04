@@ -540,24 +540,26 @@ namespace MBTrading
                 Thread.Sleep(100);
                 this.OffLineCandleIndex++;
                 this.nNeuralNetworkLearnCounter--;
-                if (this.CandlesList.NN != null)
+
+                if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_MA_LENGTH)
                 {
-                    if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING) this.CandlesList.NeuralNetworkRawData.RemoveAt(0);
-                    
-                    int nOffset = this.CandlesList.NeuralNetworkRawData.Count - 1 - 5;
-                    for (int nTempIndex = 0; nTempIndex < 5; nTempIndex++)
+                    int nOffset = this.CandlesList.NeuralNetworkRawData.Count - 1 - Consts.NEURAL_NETWORK_MA_LENGTH;
+                    for (int nTempIndex = 0; nTempIndex < Consts.NEURAL_NETWORK_MA_LENGTH; nTempIndex++)
                     {
                         this.tempList[nTempIndex] = this.CandlesList.NeuralNetworkRawData[nOffset + nTempIndex];
                     }
+                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                        string.Format("8;{0};{1};{2}\n", this.Symbol, this.tempList.Average(), this.OffLineCandleIndex - 1));
+                }
+                if (this.CandlesList.NN != null)
+                {
+                    if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING) this.CandlesList.NeuralNetworkRawData.RemoveAt(0);
 
                     List<double> lstTempNormlized = this.CandlesList.NN.KondratenkoKuperinNormalizeAsModuleTrainingSet(this.tempList);
-
                     this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(lstTempNormlized[lstTempNormlized.Count - 1], lstTempNormlized.Average());
                    
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                         string.Format("9;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
-                    File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("8;{0};{1};{2}\n", this.Symbol, this.tempList.Average(), this.OffLineCandleIndex - 1));
                 }
             }
 

@@ -47,7 +47,7 @@ namespace MBTrading
         public static string       FilesPath;
 
         // NeuralNetwork
-        public static int NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES;
+        public static int NEURAL_NETWORK_MA_LENGTH;
         public static int NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE;
         public static int NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
 
@@ -106,6 +106,7 @@ namespace MBTrading
             FilesPath                               = ConfigurationManager.AppSettings["FilesPath"];
 
 
+            NEURAL_NETWORK_MA_LENGTH                        = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_MA_LENGTH"]);
             NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE        = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE"]);
             NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING  = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING"]);
             WEBTRADING_SERVER_IP                    = ConfigurationManager.AppSettings["WEBTRADING_SERVER_IP"];

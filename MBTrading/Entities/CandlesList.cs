@@ -181,7 +181,7 @@ namespace MBTrading
         // NeuralNetwork
         public void NeuralNetworkActivate()
         {
-            this.NN = new NeuralNetwork(5, Program.SymbolsPorts[this.ParentShare.Symbol], this.NeuralNetworkRawData, this.ParentShare.Symbol);
+            this.NN = new NeuralNetwork(Consts.NEURAL_NETWORK_MA_LENGTH, Program.SymbolsPorts[this.ParentShare.Symbol], this.NeuralNetworkRawData, this.ParentShare.Symbol);
             string strTrainResult = this.NN.Train();
 
             if (strTrainResult != null)

@@ -26,9 +26,9 @@ namespace MBTrading.Utils
 
         public NeuralNetwork(int nMA_Length, string strPort, List<double> lstRowData, string strSymbol)
         {
+            this.NN_MA_Length = Consts.NEURAL_NETWORK_MA_LENGTH;
             this.Symbol = strSymbol;
             this.NNPort = strPort;
-            this.NN_MA_Length = nMA_Length;
             this.RawData = new List<double>(lstRowData);
             this.TempDataForCalculationsAsModule = new List<double>(lstRowData);
             for (int i = 0; i < nMA_Length; i++) { this.TempDataForCalculationsAsModule.Add(0); };
@@ -129,17 +129,28 @@ namespace MBTrading.Utils
                 lstTemp.RemoveAt(0); 
                 lstTemp.Add(this.NormalizedData[nIndex]); }
 
-            this.NormalizedData_SDV = MathUtils.GetStandardDeviation(lstCheckProductivity, out NormalizedData_M);
 
-            if (this.NormalizedData_SDV > NormalizedData_SDV_RATE)
-            { 
-                PythonUtils.StartPythonSingleInstance(int.Parse(Program.SymbolsPorts[this.Symbol]));
-                double[][] i = null;
-                double[][] t = null;
-                this.PrepareElmanDataSet(this.NormalizedData, out i, out t);
-                ElmanDataSet elDataSet = new ElmanDataSet() { input = i, target = t };
-                strToReturn = (PythonUtils.CallNN(elDataSet, true, this.NNPort, this.M, this.dStandardDeviation).Result);
-            }
+
+
+            double[][] i = null;
+            double[][] t = null;
+            this.PrepareElmanDataSet(this.NormalizedData, out i, out t);
+            ElmanDataSet elDataSet = new ElmanDataSet() { input = i, target = t };
+            string strTrain = ElmanDataSet.JsonSerializer(elDataSet);
+            File.WriteAllText(this.Symbol.Remove(3, 1) + ".txt", strTrain);
+
+
+            //this.NormalizedData_SDV = MathUtils.GetStandardDeviation(lstCheckProductivity, out NormalizedData_M);
+
+            //if (this.NormalizedData_SDV > NormalizedData_SDV_RATE)
+            //{ 
+            //    PythonUtils.StartPythonSingleInstance(int.Parse(Program.SymbolsPorts[this.Symbol]));
+            //    double[][] i = null;
+            //    double[][] t = null;
+            //    this.PrepareElmanDataSet(this.NormalizedData, out i, out t);
+            //    ElmanDataSet elDataSet = new ElmanDataSet() { input = i, target = t };
+            //    strToReturn = (PythonUtils.CallNN(elDataSet, true, this.NNPort, this.M, this.dStandardDeviation).Result);
+            //}
 
             return strToReturn;
         }
@@ -147,7 +158,7 @@ namespace MBTrading.Utils
         {
             double dToReturn = -1;
 
-            if (this.NormalizedData_SDV > NormalizedData_SDV_RATE)
+            if (false) // (this.NormalizedData_SDV > NormalizedData_SDV_RATE)
             {
                 ElmanDataSet input = new ElmanDataSet() { input = new double[][] { new double[] { dValue, dValueMA } } };
                 string strPrediction = PythonUtils.CallNN(input, false, this.NNPort, this.M, this.dStandardDeviation).Result;

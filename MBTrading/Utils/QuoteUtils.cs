@@ -65,7 +65,7 @@ namespace MBTrading
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
 
-                   Wait();
+                    Wait();
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

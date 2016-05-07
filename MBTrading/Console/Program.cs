@@ -14,7 +14,6 @@ namespace MBTrading
     {
         public static ConcurrentDictionary<string, Share> SharesList { get; set; }
         public static Dictionary<string, byte[]> SymbolsNamesList { get; set; }
-        public static Dictionary<string, string> SymbolsPorts { get; set; }
         public static bool IsProgramAlive;
         public static double AccountBallance = Consts.QUANTITY;
         public static int nDayNum = 0;
@@ -46,7 +45,7 @@ namespace MBTrading
 
 
             // Start NN Server
-            new Thread(() => PythonUtils.StartPythonInstances_SeparateProcesses(true)).Start();
+            new Thread(PythonUtils.StartPythonInstances_SeparateProcesses).Start();
 
 
             // Activate Shares

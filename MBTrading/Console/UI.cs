@@ -109,7 +109,7 @@ namespace MBTrading
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
                                            sCurrShare.Symbol,
                                            string.Format("{0,10:0.00000}", sCurrShare.CandlesList.CurrPrice),
-                                           sCurrShare.CandlesList.NN == null ? "0" : sCurrShare.CandlesList.NeuralNetworkRawData.Count + ": " + string.Format("{0,10:0.0}", sCurrShare.CandlesList.LastCandle.Prediction * 100),
+                                           sCurrShare.CandlesList.NN != null,
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.BuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.BuyPrice),

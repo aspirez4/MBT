@@ -18,21 +18,21 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.end_headers()
 
     def do_POST(s):
+        global lstm
         s.send_response(200)
         s.end_headers()
         data = json.loads(s.rfile.read(int(s.headers['Content-Length'])))
         if (s.path.startswith("/train")):
+            lstm = NN( nEpochs = int(sys.argv[2]) )
             lstm.train(inData = data['input'], outData = data['target'])
             s.wfile.write(lstm.test())
-        elif (s.path.startswith("/predict")):
-            s.wfile.write(lstm.predict(inData = data['input']))
         else:
-            s.wfile.write('ok')
+            s.wfile.write(lstm.predict(inData = data['input']))
+
         return
 
 if __name__ == '__main__':
     print '\n\n\nServerLSTM - Hello!'
-    lstm = NN( nEpochs = int(sys.argv[2]) )
     server_class = BaseHTTPServer.HTTPServer
     httpd = server_class((HOST_NAME, int(sys.argv[1])), MyHandler)
     print time.asctime(), "Server Starts - %s:%s" % (HOST_NAME, int(sys.argv[1]))

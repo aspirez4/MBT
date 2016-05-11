@@ -72,6 +72,8 @@ namespace MBTrading
                 {
                     File.AppendAllText(Consts.FilesPath + "\\Candles\\a.txt", File.ReadAllText(strCurrFile));
                 }
+                File.Delete("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\a.txt");
+                File.Copy(Consts.FilesPath + "\\Candles\\a.txt", "C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\a.txt");
             }
             else
             {

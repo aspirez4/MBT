@@ -603,10 +603,11 @@ namespace MBTrading
                 // Set the indicator to True when => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.OffLineIsPosition)) || (this.CrossIndicator));
 
-                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.CrossIndicator && this.OffLineIsPosition && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
+                if (!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection) // && this.CrossIndicator && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
                 {
-                    this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
-                    this.CrossIndicator = false;
+                    // this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
+                    // this.CrossIndicator = false;
+                    this.StopLoss = FindTheLastKnee(0);
                 }
                 #endregion
             }
@@ -687,7 +688,7 @@ namespace MBTrading
 			
 			this.Risk = this.BuyPrice - this.StopLoss;
 			
-            this.PositionQuantity = Consts.QUANTITY;
+            this.PositionQuantity = (int)(Program.AccountBallance * 0.1);
             this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
 
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),

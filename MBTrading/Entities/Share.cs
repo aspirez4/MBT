@@ -19,6 +19,7 @@ namespace MBTrading
         public bool PartialMode = false;
 		public bool bWasPartiald = false;
         private List<double> tempList;
+        private List<double> tempListNN;
 
         public int                      nNeuralNetworkLearnCounter          = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
         public bool                     bDidFirstConditionHappened          = false;
@@ -94,7 +95,9 @@ namespace MBTrading
             this.Symbol                     = strSymbol;
             this.PositionsReport            = false;
             this.tempList                   = new List<double>();
-            for (int i = 0; i < 5; i++) { this.tempList.Add(0); }
+            this.tempListNN                 = new List<double>();
+            for (int i = 0; i < Consts.NEURAL_NETWORK_MA_LENGTH; i++) { this.tempList.Add(0); }
+            for (int i = 0; i < Consts.NEURAL_NETWORK_MA_LENGTH; i++) { this.tempListNN.Add(0); }
         }
         public  void UpdateShareConsts()
         {
@@ -557,7 +560,9 @@ namespace MBTrading
 
                     List<double> lstTempNormlized = this.CandlesList.NN.KondratenkoKuperinNormalizeAsModuleTrainingSet(this.tempList);
                     this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(lstTempNormlized[lstTempNormlized.Count - 1], lstTempNormlized.Average());
-                   
+                    this.tempListNN.Add(this.CandlesList.LastCandle.Prediction);
+                    this.tempListNN.RemoveAt(0);
+
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                         string.Format("9;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
                 }
@@ -586,6 +591,7 @@ namespace MBTrading
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
+                //if (this.tempListNN.Average() > 0)
                 if (this.CandlesList.LastCandle.Prediction > 0)
                     OffLineBuy(FindTheLastKnee(1), false);
             }
@@ -607,7 +613,13 @@ namespace MBTrading
                 {
                     // this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
                     // this.CrossIndicator = false;
-                    this.StopLoss = FindTheLastKnee(0);
+                    double dTemp = FindTheLastKnee(0);
+                    if (this.StopLoss < dTemp)
+                    {
+                        this.StopLoss = dTemp;
+                        File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                            string.Format("21;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
+                    }
                 }
                 #endregion
             }
@@ -687,8 +699,8 @@ namespace MBTrading
             this.StopLoss = dStopLoss;
 			
 			this.Risk = this.BuyPrice - this.StopLoss;
-			
-            this.PositionQuantity = (int)(Program.AccountBallance * 0.1);
+
+            this.PositionQuantity = Consts.QUANTITY;
             this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
 
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),

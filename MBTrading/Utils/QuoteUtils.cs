@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using System.Collections;
+using System.Diagnostics;
 
 
 namespace MBTrading
@@ -59,7 +60,7 @@ namespace MBTrading
                 Directory.CreateDirectory("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b");
                 Directory.CreateDirectory(Consts.FilesPath + "\\Candles");
 
-                for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length /* 200 */; nIndex++)
+                for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length /* 569 */; nIndex++)
                 {
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
@@ -74,6 +75,20 @@ namespace MBTrading
                 }
                 File.Delete("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\a.txt");
                 File.Copy(Consts.FilesPath + "\\Candles\\a.txt", "C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\a.txt");
+
+
+                if (!Consts.CURR_CONFIGURATION.Equals(string.Empty)) { File.WriteAllText(Consts.FilesPath + "\\Results\\" + Consts.CURR_CONFIGURATION + "\\Log.txt", Program.AccountBallance.ToString()); }
+                if (!Consts.NEXT_CONFIGURATION.Equals(string.Empty))
+                {
+                    File.Copy(Consts.FilesPath + "\\Results\\" + Consts.NEXT_CONFIGURATION + "\\MBTrading.exe.config", "C:\\Users\\Or\\Projects\\MBTrading - Git\\MBTrading\\bin\\x64\\Debug\\MBTrading.exe.config", true);
+                    File.Copy(Consts.FilesPath + "\\Results\\" + Consts.NEXT_CONFIGURATION + "\\MBTrading.vshost.exe.config", "C:\\Users\\Or\\Projects\\MBTrading - Git\\MBTrading\\bin\\x64\\Debug\\MBTrading.vshost.exe.config", true);
+
+                    ProcessStartInfo startInfo = new ProcessStartInfo();
+                    startInfo.WindowStyle = ProcessWindowStyle.Normal;
+                    startInfo.FileName = "C:\\Users\\Or\\Projects\\MBTrading - Git\\MBTrading\\bin\\x64\\Debug\\MBTrading.exe";
+                    Process.Start(startInfo);
+                    Process.GetCurrentProcess().Kill();
+                }
             }
             else
             {

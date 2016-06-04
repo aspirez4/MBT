@@ -54,6 +54,10 @@ namespace MBTrading.Utils
         public double[][] input { get; set; }
         [DataMember(Order = 2)]
         public double[][] target { get; set; }
+        [DataMember(Order = 3)]
+        public string symbol { get; set; }
+        [DataMember(Order = 4)]
+        public int chunkIndex { get; set; }
 
 
         public static string JsonSerializer(ElmanDataSet objectToSerialize)

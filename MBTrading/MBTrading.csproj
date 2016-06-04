@@ -103,11 +103,11 @@
     <Compile Include="Entities\Indicators\TDI.cs" />
     <Compile Include="Entities\Indicators\WMA.cs" />
     <Compile Include="Entities\Indicators\ZigZag.cs" />
-    <Compile Include="Entities\Integer.cs" />
     <Compile Include="Entities\MarketData.cs" />
     <Compile Include="Entities\MarketTime.cs" />
     <Compile Include="Entities\Order.cs" />
     <Compile Include="Entities\OrdersBook.cs" />
+    <Compile Include="Entities\SafeInteger.cs" />
     <Compile Include="Entities\Share.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\FixGatewayUtils.cs" />
@@ -122,7 +122,9 @@
     <Compile Include="Utils\Time.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Console\App.config" />
+    <None Include="Console\App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

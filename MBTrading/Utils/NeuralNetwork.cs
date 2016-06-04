@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 using System.IO;
 using MBTrading.Entities;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace MBTrading.Utils
 {
     public class NeuralNetwork
     {
-        public static Dictionary<string, double> NormalizedData_SDV_List = new Dictionary<string, double>();
-        public static int[] ports = { 4567, 4568, 4569, 4570 };
+        public static ConcurrentDictionary<string, double> NormalizedData_SDV_List = new ConcurrentDictionary<string, double>();
+        public static int CountOfLivedInstances = 0;
+        public static int[] ports = { 4567, 4568, 4569, 4570, 4571 };
 
         public double NormalizedData_SDV;
         public double Accuracy;
@@ -28,6 +30,7 @@ namespace MBTrading.Utils
 
         public NeuralNetwork(int nMA_Length, List<double> lstRowData, string strSymbol)
         {
+            Interlocked.Increment(ref NeuralNetwork.CountOfLivedInstances);
             this.NN_MA_Length = Consts.NEURAL_NETWORK_MA_LENGTH;
             this.Symbol = strSymbol;
             this.RawData = new List<double>(lstRowData);
@@ -119,9 +122,6 @@ namespace MBTrading.Utils
         {
             string strToReturn = null;
 
-            // If sortedList is full from the last NNTraining iterations - clear it
-            if (NeuralNetwork.NormalizedData_SDV_List.Count == Program.SymbolsNamesList.Count) NeuralNetwork.NormalizedData_SDV_List.Clear();
-
             // Normlize data
             this.NormalizedData = this.KondratenkoKuperinNormalization(this.RawData);
 
@@ -139,7 +139,7 @@ namespace MBTrading.Utils
 
             // Get the results and add it to the sortedList
             this.NormalizedData_SDV = MathUtils.GetStandardDeviation(lstCheckProductivity, out NormalizedData_M);
-            NeuralNetwork.NormalizedData_SDV_List.Add(this.Symbol, this.NormalizedData_SDV);
+            NeuralNetwork.NormalizedData_SDV_List.TryAdd(this.Symbol, this.NormalizedData_SDV);
 
             // While sortedList is not full - wait
             while (NeuralNetwork.NormalizedData_SDV_List.Count != Program.SymbolsNamesList.Count)
@@ -148,7 +148,7 @@ namespace MBTrading.Utils
             }
 
             // If this NN NormlizedData standardDeviation was one of first 'X' - Start Train this NN
-            int nPortIndex = NeuralNetwork.IsSymbolIsOneOfKFirsts(this.Symbol);
+            int nPortIndex = NeuralNetwork.IsSymbolIsOneOfFirstKs(this.Symbol);
             if (nPortIndex != -1)
             {
                 this.NNPort = ports[nPortIndex].ToString();
@@ -156,8 +156,17 @@ namespace MBTrading.Utils
                 double[][] i = null;
                 double[][] t = null;
                 this.PrepareElmanDataSet(this.NormalizedData, out i, out t);
-                ElmanDataSet elDataSet = new ElmanDataSet() { input = i, target = t };
+
+                ElmanDataSet elDataSet = new ElmanDataSet() 
+                { 
+                    input = i, 
+                    target = t, 
+                    symbol = this.Symbol.Remove(3, 1),
+                    chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count
+                };
+
                 strToReturn = (PythonUtils.CallNN(elDataSet, true, this.NNPort, this.M, this.dStandardDeviation).Result);
+                NeuralNetwork.NormalizedData_SDV_List.Clear();
             }
 
             return strToReturn;
@@ -165,8 +174,14 @@ namespace MBTrading.Utils
         public double Predict(double dValue, double dValueMA)
         {
             double dToReturn = -1;
-            
-            ElmanDataSet input = new ElmanDataSet() { input = new double[][] { new double[] { dValue, dValueMA } } };
+
+            ElmanDataSet input = new ElmanDataSet() 
+            { 
+                input = new double[][] { new double[] { dValue, dValueMA } },
+                symbol = this.Symbol.Remove(3, 1),
+                chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count
+            };
+
             string strPrediction = PythonUtils.CallNN(input, false, this.NNPort, this.M, this.dStandardDeviation).Result;
             double dPrediction = double.Parse(strPrediction);
 
@@ -176,14 +191,14 @@ namespace MBTrading.Utils
             return (dToReturn);
         }
 
-        private static int IsSymbolIsOneOfKFirsts( string strSymbol)
+        private static int IsSymbolIsOneOfFirstKs(string strSymbol)
         {
+//            Program.SDV[strSymbol].Add(NeuralNetwork.NormalizedData_SDV_List[strSymbol]);
+            var orderedList = NeuralNetwork.NormalizedData_SDV_List.OrderByDescending(v => v.Value);
             int nIndexToRetun = -1;
-            var orderByVal = NormalizedData_SDV_List.OrderByDescending(v => v.Value);
-
             for (int nIndex = 0; nIndex < NeuralNetwork.ports.Length; nIndex++)
 			{
-                if (orderByVal.ElementAt(nIndex).Key.Equals(strSymbol))
+                if (orderedList.ElementAt(nIndex).Key.Equals(strSymbol))
                 {
                     nIndexToRetun = nIndex;
                     break;
@@ -191,7 +206,6 @@ namespace MBTrading.Utils
 			}
             
             return nIndexToRetun;
-
         }
     }
 }

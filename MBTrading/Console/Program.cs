@@ -13,10 +13,13 @@ namespace MBTrading
     class Program
     {
         public static ConcurrentDictionary<string, Share> SharesList { get; set; }
+        public static ConcurrentDictionary<string, List<double>> SDV { get; set; }
         public static Dictionary<string, byte[]> SymbolsNamesList { get; set; }
+        
         public static bool IsProgramAlive;
         public static double AccountBallance = Consts.QUANTITY;
         public static int nDayNum = 0;
+        
 
         public static void Main(string[] args)
         {
@@ -45,7 +48,7 @@ namespace MBTrading
 
 
             // Start NN Server
-            new Thread(PythonUtils.StartPythonInstances_SeparateProcesses).Start();
+            if (Consts.NEURAL_NETWORK_INIT_PYTHON) new Thread(PythonUtils.StartPythonInstances_SeparateProcesses).Start();
 
 
             // Activate Shares
@@ -82,6 +85,7 @@ namespace MBTrading
                 // Read the symbols
                 Program.SymbolsNamesList = Program.GetSymbolsNamesFromFile();
                 Program.SharesList = new ConcurrentDictionary<string, Share>();
+                Program.SDV = new ConcurrentDictionary<string, List<double>>();
 
                 // Initialize the shares 
                 foreach (string strSymbol in Program.SymbolsNamesList.Keys)
@@ -89,6 +93,7 @@ namespace MBTrading
                     Share sNewShare = new Share(strSymbol);
                     sNewShare.UpdateShareConsts();
                     Program.SharesList.TryAdd(strSymbol, sNewShare);
+                    Program.SDV.TryAdd(strSymbol, new List<double>());
 
                     if (!Consts.WorkOffLineMode)
                         sNewShare.CandlesList = QuoteUtils_Historical.LoadLast20(

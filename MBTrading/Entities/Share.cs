@@ -21,7 +21,7 @@ namespace MBTrading
         private List<double> tempList;
         private List<double> tempListNN;
 
-        public int                      nNeuralNetworkLearnCounter          = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
+
         public bool                     bDidFirstConditionHappened          = false;
         public bool                     bDidSecondConditionHappened         = false;
         public double                   StrongMinLow;
@@ -486,18 +486,18 @@ namespace MBTrading
 
         public double FindTheLastKnee(int nNumOfCandlesToStartBack)
         {
-            double dStopLoss = double.MaxValue;
+            double dStopLoss = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].R_Low;
 
             bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
-            for (int nWMADirInex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirInex > 0; nWMADirInex--)
+            for (int nWMADirIndex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirIndex > 0; nWMADirIndex--)
             {
-                if ((!bWMADir) && (this.CandlesList.Candles[nWMADirInex].WMADirection))
+                if ((!bWMADir) && (this.CandlesList.Candles[nWMADirIndex].WMADirection))
                     break;
 
-                if (dStopLoss > this.CandlesList.Candles[nWMADirInex].R_Low)
-                    dStopLoss = this.CandlesList.Candles[nWMADirInex].R_Low;
+                if (dStopLoss > this.CandlesList.Candles[nWMADirIndex].R_Low)
+                    dStopLoss = this.CandlesList.Candles[nWMADirIndex].R_Low;
 
-                bWMADir = this.CandlesList.Candles[nWMADirInex].WMADirection;
+                bWMADir = this.CandlesList.Candles[nWMADirIndex].WMADirection;
             }
 
             return (dStopLoss - 5 * this.PipsUnit);
@@ -542,11 +542,22 @@ namespace MBTrading
             {
                 Thread.Sleep(100);
                 this.OffLineCandleIndex++;
-                this.nNeuralNetworkLearnCounter--;
+
+                if ((Consts.NEURAL_NETWORK_TRAINING_INTERVAL == 0) && (this.NNActive))
+                {
+                    if (this.OffLineCandleIndex % Consts.NEURAL_NETWORK_CHANK_SIZE == 0)
+                        this.CandlesList.NeuralNetworkActivate();
+                }
+                else
+                {
+                    if (this.OffLineCandleIndex % Consts.NEURAL_NETWORK_TRAINING_INTERVAL == Consts.NEURAL_NETWORK_CHANK_SIZE + 10)
+                        this.CandlesList.NeuralNetworkActivate();
+                }
+
 
                 if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_MA_LENGTH)
                 {
-                    int nOffset = this.CandlesList.NeuralNetworkRawData.Count - 1 - Consts.NEURAL_NETWORK_MA_LENGTH;
+                    int nOffset = this.CandlesList.NeuralNetworkRawData.Count - Consts.NEURAL_NETWORK_MA_LENGTH;
                     for (int nTempIndex = 0; nTempIndex < Consts.NEURAL_NETWORK_MA_LENGTH; nTempIndex++)
                     {
                         this.tempList[nTempIndex] = this.CandlesList.NeuralNetworkRawData[nOffset + nTempIndex];
@@ -556,8 +567,6 @@ namespace MBTrading
                 }
                 if (this.CandlesList.NN != null)
                 {
-                    if (this.CandlesList.NeuralNetworkRawData.Count > Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING) this.CandlesList.NeuralNetworkRawData.RemoveAt(0);
-
                     List<double> lstTempNormlized = this.CandlesList.NN.KondratenkoKuperinNormalizeAsModuleTrainingSet(this.tempList);
                     this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(lstTempNormlized[lstTempNormlized.Count - 1], lstTempNormlized.Average());
                     this.tempListNN.Add(this.CandlesList.LastCandle.Prediction);
@@ -566,12 +575,6 @@ namespace MBTrading
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                         string.Format("9;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
                 }
-            }
-
-            if ((this.nNeuralNetworkLearnCounter <= 0) && (this.NNActive) && (this.CandlesList.NeuralNetworkRawData.Count > 10))
-            {
-                nNeuralNetworkLearnCounter = Consts.NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
-                this.CandlesList.NeuralNetworkActivate();
             }
             #endregion
 
@@ -587,11 +590,27 @@ namespace MBTrading
 
 
 
-
+            Boolean bLastLowZigZag = true;
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
-                //if (this.tempListNN.Average() > 0)
+                
+                int i;
+                int i2;
+                for (i = this.CandlesList.ZigZag5.Length - 1; i > 0; i--)
+                {
+                    if ((this.CandlesList.ZigZag5.LowMap[i] != 0) && (this.CandlesList.ZigZag5.ZigZagMap[i] == this.CandlesList.ZigZag5.LowMap[i]))
+                        break;
+                }
+                for (i2 = this.CandlesList.ZigZag5.Length - 1; i2 > i; i2--)
+                {
+                    if (this.CandlesList.ZigZag5.ZigZagMap[i2] != 0)
+                        bLastLowZigZag = false;
+                }
+
+
+
+
                 if (this.CandlesList.LastCandle.Prediction > 0)
                     OffLineBuy(FindTheLastKnee(1), false);
             }
@@ -613,12 +632,12 @@ namespace MBTrading
                 {
                     // this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
                     // this.CrossIndicator = false;
-                    double dTemp = FindTheLastKnee(0);
+                    double dTemp = FindTheLastKnee(1);
                     if (this.StopLoss < dTemp)
                     {
                         this.StopLoss = dTemp;
                         File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                            string.Format("21;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Prediction, this.OffLineCandleIndex));
+                            string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
                     }
                 }
                 #endregion
@@ -753,36 +772,36 @@ namespace MBTrading
         
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {
-            double dPossibleStopLoss = 0;
+            //double dPossibleStopLoss = 0;
 
-            if (this.IsPosition)
-            {
-                if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
-                {
-                    this.StopLoss = dLastLow;
-                }
-            }
-            else if ((this.OffLineIsPosition) && (this.CrossEMALine))
-            {
-                for (int nZigZagIndex = nIndex - 1; nZigZagIndex > 0; nZigZagIndex--)
-                {
-                    if (this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] != 0)
-                    {
-                        dPossibleStopLoss = this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] - 4 * this.PipsUnit;
-                        nIndex = nZigZagIndex;
-                        break;
-                    }
-                }
+            //if (this.IsPosition)
+            //{
+            //    if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
+            //    {
+            //        this.StopLoss = dLastLow;
+            //    }
+            //}
+            //else if ((this.OffLineIsPosition) && (this.CrossEMALine))
+            //{
+            //    for (int nZigZagIndex = nIndex - 1; nZigZagIndex > 0; nZigZagIndex--)
+            //    {
+            //        if (this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] != 0)
+            //        {
+            //            dPossibleStopLoss = this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] - 4 * this.PipsUnit;
+            //            nIndex = nZigZagIndex;
+            //            break;
+            //        }
+            //    }
 
-                if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
-                {
-                    //this.StopLoss = dPossibleStopLoss;
-                    //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                    //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
-                    //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                    //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
-                }
-            }
+            //    if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
+            //    {
+            //        //this.StopLoss = dPossibleStopLoss;
+            //        //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            //        //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+            //        //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+            //        //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
+            //    }
+            //}
         }
     }
 }

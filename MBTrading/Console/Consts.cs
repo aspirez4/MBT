@@ -49,7 +49,13 @@ namespace MBTrading
         // NeuralNetwork
         public static int NEURAL_NETWORK_MA_LENGTH;
         public static int NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE;
-        public static int NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING;
+        public static int NEURAL_NETWORK_CHANK_SIZE;
+        public static int NEURAL_NETWORK_TRAINING_INTERVAL;
+        public static int NEURAL_NETWORK_PREDICTION_INTERVAL;
+        public static bool NEURAL_NETWORK_INIT_PYTHON;
+
+        public static string CURR_CONFIGURATION;
+        public static string NEXT_CONFIGURATION;
 
         // WebTrading Server and DB
         public static string      WEBTRADING_SERVER_IP;
@@ -108,7 +114,12 @@ namespace MBTrading
 
             NEURAL_NETWORK_MA_LENGTH                        = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_MA_LENGTH"]);
             NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE        = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_PROFIT_OR_LOSS_PIPS_RANGE"]);
-            NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING  = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_CONST_CHANK_BETWEEN_NN_LEARNING"]);
+            NEURAL_NETWORK_CHANK_SIZE                       = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_CHANK_SIZE"]);
+            NEURAL_NETWORK_PREDICTION_INTERVAL              = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_PREDICTION_INTERVAL"]);
+            NEURAL_NETWORK_TRAINING_INTERVAL                = int.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_TRAINING_INTERVAL"]);
+            NEURAL_NETWORK_INIT_PYTHON                      = bool.Parse(ConfigurationManager.AppSettings["NEURAL_NETWORK_INIT_PYTHON"]);
+            NEXT_CONFIGURATION                              = ConfigurationManager.AppSettings["NEXT_CONFIGURATION"];
+            CURR_CONFIGURATION                              = ConfigurationManager.AppSettings["CURR_CONFIGURATION"];
             WEBTRADING_SERVER_IP                    = ConfigurationManager.AppSettings["WEBTRADING_SERVER_IP"];
             WEBTRADING_SERVER_PORT                  = int.Parse(ConfigurationManager.AppSettings["WEBTRADING_SERVER_PORT"]);
         }

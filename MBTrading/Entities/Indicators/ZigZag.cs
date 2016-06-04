@@ -18,8 +18,6 @@ namespace MBTrading.Entities.Indicators
         public List<double> ZigZagMap;
         public List<double> HighMap;
         public List<double> LowMap;
-        public ZigZagData   LastHigh;
-        public ZigZagData   LastLow;
         
         int     i               = 0;
         int     counterZ        = 0;
@@ -101,7 +99,7 @@ namespace MBTrading.Entities.Indicators
             if (this.nZigZagCalculationStartIndex != nUserExtDepth)
             {
 		        // searching third extremum from the last uncompleted bar
-                for (i = this.zzSourceList.Count - 1; (i > this.zzSourceList.Count - 100) && (counterZ < nLevel); i--)
+                for (i = this.zzSourceList.Count - 1; (i > nUserExtBackstep) && (counterZ < nLevel); i--)
                 {
 			        if(ZigZagMap[i] != 0) 
 			        {
@@ -113,16 +111,18 @@ namespace MBTrading.Entities.Indicators
                 this.nZigZagCalculationStartIndex = i;
 	
 		        // what type of exremum we are going to find
-		        if(LowMap[i] != 0)
+		        if ((LowMap[i] != 0) && (ZigZagMap[i] == LowMap[i]))
 		        {
                     // searching for next high
 			        dCurrLow = LowMap[i];
+                    nLastLowIndex = i;
 			        nWhatLookFor = 1;
 		        }
 		        else
 		        {
                     // searching for next low
 			        dCurrHigh = HighMap[i];
+                    nLastHighIndex = i;
 			        nWhatLookFor = -1;
 		        }
 		
@@ -247,18 +247,20 @@ namespace MBTrading.Entities.Indicators
                             nLastHighIndex = nShift;
                             dLastHigh = HighMap[nShift];
                             ZigZagMap[nShift] = dLastHigh;
-                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
                             //ZigZagLowEvent(nShift, dLastHigh);
                         }
 
-                        if ((LowMap[nShift] != 0) && (HighMap[nShift] == 0))
+                        if ((LowMap[nShift] != 0) && (LowMap[nShift] < dLastHigh) && (HighMap[nShift] == 0))
                         {
                             dLastLow = LowMap[nShift];
                             nLastLowIndex = nShift;
                             ZigZagMap[nShift] = dLastLow;
                             nWhatLookFor = 1;
+                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
                         }
+
+                        
                         break;
                     }
                     case 0: // Search for peak or lawn
@@ -271,8 +273,6 @@ namespace MBTrading.Entities.Indicators
                                 nLastHighIndex = nShift;
                                 nWhatLookFor = -1;
                                 ZigZagMap[nShift] = dLastHigh;
-                                dRes = 1;
-                                this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
                                 //ZigZagLowEvent(nShift, dLastHigh);
                             }
 
@@ -282,7 +282,7 @@ namespace MBTrading.Entities.Indicators
                                 nLastLowIndex = nShift;
                                 nWhatLookFor = 1;
                                 ZigZagMap[nShift] = dLastLow;
-                                dRes = 1;
+                                this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                                 //ZigZagLowEvent(nShift, dLastLow);
                             }
                         }
@@ -296,18 +296,16 @@ namespace MBTrading.Entities.Indicators
                             nLastLowIndex = nShift;
                             dLastLow = LowMap[nShift];
                             ZigZagMap[nShift] = dLastLow;
-                            dRes = 1;
+                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
                         }
 
-                        if (HighMap[nShift] != 0 && LowMap[nShift] == 0)
+                        if ((HighMap[nShift] != 0) && (HighMap[nShift] > dLastLow) && (LowMap[nShift] == 0))
                         {
                             dLastHigh = HighMap[nShift];
                             nLastHighIndex = nShift;
                             ZigZagMap[nShift] = dLastHigh;
                             nWhatLookFor = -1;
-                            dRes = 1;
-                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastHigh);
                             //ZigZagLowEvent(nShift, dLastHigh);
                         }
                         break;
@@ -315,43 +313,65 @@ namespace MBTrading.Entities.Indicators
                 }
             }
 
+
+            double prev = 0;
+            int bNext = -100;
+            foreach (double curr in ZigZagMap)
+            {
+                if (curr != 0)
+                {
+                    if (prev != 0)
+                    {
+                        if ((bNext != -100) && (bNext != Convert.ToInt32(curr < prev)))
+                        {
+                            int n = 9;
+                        }
+
+                        bNext = Convert.ToInt32(!(curr < prev));
+                    }
+
+                    prev = curr;
+                }
+            }
             #endregion
+
+            this.nZigZagCalculationStartIndex = 0;
         }
 
 
 
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
-//            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
-//                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length));
+            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
+                string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length + 1));
 
-            // ZigZag NeuralNetwork
-            if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))
-            {
-                if (this.ZigZagMap[0] != 0)
-                {
-                    ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.Low, this.zzSourceList[0].CandleIndex);
+            //// ZigZag NeuralNetwork
+            //if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))
+            //{
+            //    if (this.ZigZagMap[0] != 0)
+            //    {
+            //        ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.Low, this.zzSourceList[0].CandleIndex);
 
-                    if (this.ZigZagMap[0] == this.LowMap[0])
-                    {
-                        this.LastLow = zd;
-                    }
-                    else
-                    {
-                        zd.Indication = ZigZagIndication.High;
-                        this.LastHigh = zd;
+            //        if (this.ZigZagMap[0] == this.LowMap[0])
+            //        {
+            //            this.LastLow = zd;
+            //        }
+            //        else
+            //        {
+            //            zd.Indication = ZigZagIndication.High;
+            //            this.LastHigh = zd;
 
-                        if (this.LastLow != null)
-                        {
-                            this.ParentCandleList.NeuralNetworkZigZagData.Add(new ZigZagData((this.LastLow.Value + this.LastHigh.Value) / 2, 
-                                                                              ZigZagIndication.Mid, 
-                                                                              (this.LastLow.CandleIndex + this.LastHigh.CandleIndex) / 2));
-                        }
-                    }
+            //            if (this.LastLow != null)
+            //            {
+            //                this.ParentCandleList.NeuralNetworkZigZagData.Add(new ZigZagData((this.LastLow.Value + this.LastHigh.Value) / 2, 
+            //                                                                  ZigZagIndication.Mid, 
+            //                                                                  (this.LastLow.CandleIndex + this.LastHigh.CandleIndex) / 2));
+            //            }
+            //        }
                     
-                    this.ParentCandleList.NeuralNetworkZigZagData.Add(zd);
-                }
-            }
+            //        this.ParentCandleList.NeuralNetworkZigZagData.Add(zd);
+            //    }
+            //}
 
             this.zzSourceList.RemoveAt(0);
             this.ZigZagMap.RemoveAt(0);
@@ -364,7 +384,7 @@ namespace MBTrading.Entities.Indicators
         }
         public void CompleteInitializationActions()
         {
-            this.nZigZagCalculationStartIndex = 0;
+            
         }
         // Searching index of the highest bar
         private double Highest(int nDepth, int nStartIndex)
@@ -377,7 +397,7 @@ namespace MBTrading.Entities.Indicators
 	
 	        double dMaxVal = this.zzSourceList[nStartIndex].R_High;
 	
-	        //--- start searching
+	        // Start searching
 	        for (int nIndex = nStartIndex; nIndex > nStartIndex - nDepth; nIndex--)
 	        {
                 if (this.zzSourceList[nIndex].R_High > dMaxVal)
@@ -386,7 +406,7 @@ namespace MBTrading.Entities.Indicators
 		        }
 	        }
 	
-	        //--- return index of the highest bar
+	        // Return index of the highest bar
             return (dMaxVal);
         }
         // Searching index of the lowest bar        
@@ -413,22 +433,4 @@ namespace MBTrading.Entities.Indicators
             return (nMinVal);
         }
     }
-
-    public class ZigZagData
-    {
-        public double Value;
-        public ZigZagIndication Indication;
-        public int CandleIndex;
-
-        public ZigZagData(double dValue, ZigZagIndication ziIndication, int nCandleIndex)
-        {
-            this.Value = dValue;
-            this.Indication = ziIndication;
-            this.CandleIndex = nCandleIndex;
-        }
-    }
-    public enum ZigZagIndication
-    {
-        Low, Mid, High
-    };
 }

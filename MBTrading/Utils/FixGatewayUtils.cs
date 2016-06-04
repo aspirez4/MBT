@@ -19,7 +19,7 @@ namespace MBTrading
         private static TcpClient                                tcpClient                       = null;
         private static NetworkStream                            networkStream                   = null;                     // TODO: SSL_STREAM
         private static string                                   SessionToken                    = string.Empty;
-        public  static Integer                                  Sequence                        = null;
+        public  static SafeInteger                              Sequence                        = null;
         public  static bool                                     LogonIndicator                  = false;
         public  static bool                                     OperationalTime                 = false;
         public  static bool                                     SystemProblem = false;
@@ -40,7 +40,7 @@ namespace MBTrading
 
         static FixGatewayUtils()
         {
-            FixGatewayUtils.Sequence = new Integer(0);
+            FixGatewayUtils.Sequence = new SafeInteger(0);
             FixGatewayUtils.LastGatewaySequence = 0;
             FixGatewayUtils.MessageHistoryList = new ConcurrentDictionary<int, string>();
         }
@@ -172,7 +172,7 @@ namespace MBTrading
         public static void CleanSequence()
         {
             // Initiate all Sequence companents
-            FixGatewayUtils.Sequence = new Integer(0);
+            FixGatewayUtils.Sequence = new SafeInteger(0);
             FixGatewayUtils.LastGatewaySequence = 0;
             FixGatewayUtils.MessageHistoryList.Clear();
         }

@@ -12,8 +12,6 @@ namespace MBTrading
     {
         // Neural Network
         public List<double>                 NeuralNetworkRawData = new List<double>();
-        public List<ZigZagData>             NeuralNetworkZigZagData = new List<ZigZagData>();
-        public List<double>                 ModelSegmentation = new List<double>();
         public NeuralNetwork                NN;
 
         // CandlesList
@@ -60,8 +58,7 @@ namespace MBTrading
             this.LowestPrice                    = double.MaxValue;
             this.HighestPrice                   = double.MinValue;
 
-
-            // Register Indicators // RSI > StochasticRSI > Stochastic > SMA > EMA > WMA > Awesome > TDI
+            // Register Indicators // RSI > StochasticRSI > Stochastic > SMA > EMA > WMA > Awesome > TDI > ZigZag
             RSI             = new RSI();
             SMA             = new SMA();
             EMA             = new EMA();
@@ -80,6 +77,7 @@ namespace MBTrading
             // NewIndicatorValue and CompleteInitializationActions 
             this.IndicatorsList.ForEach(I => I.NewIndicatorValue());
             this.IndicatorsList.ForEach(I => I.CompleteInitializationActions());
+            for (int nChankCounter = 0; nChankCounter < Consts.NEURAL_NETWORK_CHANK_SIZE; nChankCounter++) this.NeuralNetworkRawData.Add(1);
         }
         public bool AddOrUpdatePrice(MarketData mdCurrMarketData)
         {
@@ -132,7 +130,9 @@ namespace MBTrading
                 MongoDBUtils.DBEventAfterCandleFinished(this.ParentShare, this.LastCandle);
 
                 // if (this.NeuralNetworkRawData.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES) { this.NeuralNetworkRawData.RemoveAt(0); }
-                this.NeuralNetworkRawData.Add(Math.Log(this.LastCandle.R_Close/this.PrevCandle.R_Close, Math.E));
+                this.NeuralNetworkRawData.RemoveAt(0);
+                this.NeuralNetworkRawData.Add(Math.Log(this.Candles[this.CountDec].R_Close / 
+                                                       this.Candles[this.CountDec - Consts.NEURAL_NETWORK_PREDICTION_INTERVAL].R_Close, Math.E));
 
                 // New candle
                 Candle cCurrCandle = new Candle(mdCurrMarketData.Time,
@@ -163,8 +163,8 @@ namespace MBTrading
                 this.IndicatorsList.ForEach(I => I.NewIndicatorValue());;
 
                 // Update candles 'start' indicator flags
-                this.LastCandle.StartWMA = this.WMA.Value;
-                this.LastCandle.StartEMA = this.EMA.Value;
+                this.LastCandle.StartWMA        = this.WMA.Value;
+                this.LastCandle.StartEMA        = this.EMA.Value;
                 this.LastCandle.StartTDI_Green  = this.TDI.TDI_Green;
                 this.LastCandle.StartTDI_Red    = this.TDI.TDI_Red;
 

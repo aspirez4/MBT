@@ -4,6 +4,7 @@ import BaseHTTPServer
 import json
 import random
 import sys
+import gc
 import os.path
 from   six.moves   import cPickle
 from   urlparse    import urlparse, parse_qs
@@ -26,6 +27,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.end_headers()
         data = json.loads(s.rfile.read(int(s.headers['Content-Length'])))
         if (s.path.startswith("/train")):
+            del lstm
+            gc.collect()
             modelFileName = 'dumpModels/{}_{}.save'.format(data['symbol'], data['chunkIndex'])
 			
             if (os.path.isfile(modelFileName)):

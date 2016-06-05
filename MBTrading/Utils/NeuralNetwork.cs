@@ -14,6 +14,8 @@ namespace MBTrading.Utils
     {
         public static ConcurrentDictionary<string, double> NormalizedData_SDV_List = new ConcurrentDictionary<string, double>();
         public static int CountOfLivedInstances = 0;
+        public static int CountOfInstancesFinishedTraining = 0;
+        public static int CountOfInstancesStartedTraining = 0;
         public static int[] ports = { 4567, 4568, 4569, 4570, 4571 };
 
         public double NormalizedData_SDV;
@@ -165,8 +167,10 @@ namespace MBTrading.Utils
                     chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count
                 };
 
+                Interlocked.Increment(ref NeuralNetwork.CountOfInstancesStartedTraining);
                 strToReturn = (PythonUtils.CallNN(elDataSet, true, this.NNPort, this.M, this.dStandardDeviation).Result);
                 NeuralNetwork.NormalizedData_SDV_List.Clear();
+                Interlocked.Increment(ref NeuralNetwork.CountOfInstancesFinishedTraining);
             }
 
             return strToReturn;
@@ -189,6 +193,18 @@ namespace MBTrading.Utils
             dToReturn = this.M - (Math.Log((1 / dPrediction) - 1, Math.E) * this.dStandardDeviation);
 
             return (dToReturn);
+        }
+
+        public static void WaitForNeuralTraining()
+        {
+            while ((NeuralNetwork.CountOfInstancesStartedTraining != 0) &&
+                   (NeuralNetwork.CountOfInstancesFinishedTraining != NeuralNetwork.ports.Length))
+            {
+                Thread.Sleep(100);
+            }
+
+            NeuralNetwork.CountOfInstancesStartedTraining = 0;
+            NeuralNetwork.CountOfInstancesFinishedTraining = 0;
         }
 
         private static int IsSymbolIsOneOfFirstKs(string strSymbol)

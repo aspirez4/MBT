@@ -7,6 +7,7 @@ using System.Threading;
 using System.Xml;
 using System.Collections;
 using System.Diagnostics;
+using MBTrading.Utils;
 
 
 namespace MBTrading
@@ -29,7 +30,7 @@ namespace MBTrading
         private static long             _lockFlag   = 0;
         private static long             _T_Flag     = 1;
         private static long             _F_Flag     = 0;
-
+        public static int               FileCounter = 0;
         // Ctor
         static QuoteUtils()
         {
@@ -38,16 +39,6 @@ namespace MBTrading
             QuoteUtils.MarketDataStreamArrayUsageSize = QuoteUtils.MarketDataStreamArraySize - 10;
         }
 
-        public static   void Wait()
-        {
-            foreach (Share sCurrShare in Program.SharesList.Values)
-            {
-                while (sCurrShare.PricesQueue.Count > 10000)
-                {
-                    Thread.Sleep(300);
-                }
-            }
-        }
 
         // Static Methods - Quote API
         public static   void ConnectMBTQuoteAPI()
@@ -62,11 +53,12 @@ namespace MBTrading
 
                 for (int nIndex = 0; nIndex < Directory.GetFiles(strQuotesFolder).Length /* 569 */; nIndex++)
                 {
+                    QuoteUtils.FileCounter = nIndex;
                     byte[] strLines = File.ReadAllBytes(string.Format("{0}Quotes{1}.txt", strQuotesFolder, nIndex));
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
 
-                    Wait();
+                    NeuralNetwork.WaitForNeuralTraining();
                 }
 
                 foreach (string strCurrFile in Directory.GetFiles(Consts.FilesPath + "\\Candles\\"))

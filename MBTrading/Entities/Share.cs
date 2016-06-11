@@ -594,7 +594,7 @@ namespace MBTrading
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
-                if ((this.CandlesList.PrevCandle.WMADirection) && (this.CandlesList.LastCandle.Prediction > 0))
+                if (this.CandlesList.LastCandle.Prediction > 0)
                     OffLineBuy(FindTheLastKnee(1), false);
             }
             else if ((bIsNewCandle) && (this.OffLineIsPosition))
@@ -623,6 +623,11 @@ namespace MBTrading
                             string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
                     }
                 }
+                else if ((this.OffLineCandleIndex > this.OffLineBuyIndex + 3) && (this.StopLoss < this.BuyPrice) && (this.BuyPrice + 5 * this.PipsUnit < this.CandlesList.CurrPrice))
+                {
+                    this.StopLoss = this.BuyPrice + 5 * this.PipsUnit;
+                }
+
                 #endregion
             }
 

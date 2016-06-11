@@ -16,7 +16,7 @@ namespace MBTrading.Utils
         public static int CountOfLivedInstances = 0;
         public static int CountOfInstancesFinishedTraining = 0;
         public static int CountOfInstancesStartedTraining = 0;
-        public static int[] ports = { 4567, 4568, 4569, 4570, 4571 };
+        public static int[] ports = { 4567, 4568, 4569, 4570 };
 
         public double NormalizedData_SDV;
         public double Accuracy;
@@ -209,7 +209,7 @@ namespace MBTrading.Utils
 
         private static int IsSymbolIsOneOfFirstKs(string strSymbol)
         {
-//            Program.SDV[strSymbol].Add(NeuralNetwork.NormalizedData_SDV_List[strSymbol]);
+            Program.SDV[strSymbol].Add(NeuralNetwork.NormalizedData_SDV_List[strSymbol]);
             var orderedList = NeuralNetwork.NormalizedData_SDV_List.OrderByDescending(v => v.Value);
             int nIndexToRetun = -1;
             for (int nIndex = 0; nIndex < NeuralNetwork.ports.Length; nIndex++)

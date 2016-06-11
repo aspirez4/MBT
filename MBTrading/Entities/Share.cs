@@ -250,7 +250,7 @@ namespace MBTrading
                                                                   this.ReversalStopLimitPrice + PipsToStopLimit,
                                                                   this.ChangingStopPirce,
                                                                   "ReversalStopLossPrice",
-                                                                  Consts.QUANTITY,
+                                                                  Program.Quantity,
                                                                   "Reversal",
                                                                   null);
                                 }
@@ -306,7 +306,7 @@ namespace MBTrading
                                                                                      this.CandlesList.CurrPrice + PipsToStopLimit,
                                                                                      this.ChangingStopPirce,
                                                                                      "BollingerStopLossPrice",
-                                                                                     Consts.QUANTITY,
+                                                                                     Program.Quantity,
                                                                                      "MyBollingerStrategy",
                                                                                      this.CandleIndex + 1);
                 }
@@ -358,8 +358,8 @@ namespace MBTrading
                             this.bDidSecondConditionHappened = this.BuyStopLimitPlusStopLoss(this.StrongMinLow, 
                                                                                              this.StrongMinLow + PipsToStopLimit, 
                                                                                              this.ChangingStopPirce, 
-                                                                                             "StrategyStopLossPrice", 
-                                                                                             Consts.QUANTITY, 
+                                                                                             "StrategyStopLossPrice",
+                                                                                             Program.Quantity, 
                                                                                              "Strategy", 
                                                                                              this.CandleIndex + 1);
                         }
@@ -486,7 +486,7 @@ namespace MBTrading
 
         public double FindTheLastKnee(int nNumOfCandlesToStartBack)
         {
-            double dStopLoss = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].R_Low;
+            double dKnee = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].R_Low;
 
             bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
             for (int nWMADirIndex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirIndex > 0; nWMADirIndex--)
@@ -494,13 +494,13 @@ namespace MBTrading
                 if ((!bWMADir) && (this.CandlesList.Candles[nWMADirIndex].WMADirection))
                     break;
 
-                if (dStopLoss > this.CandlesList.Candles[nWMADirIndex].R_Low)
-                    dStopLoss = this.CandlesList.Candles[nWMADirIndex].R_Low;
+                if (dKnee > this.CandlesList.Candles[nWMADirIndex].R_Low)
+                    dKnee = this.CandlesList.Candles[nWMADirIndex].R_Low;
 
                 bWMADir = this.CandlesList.Candles[nWMADirIndex].WMADirection;
             }
 
-            return (dStopLoss - 5 * this.PipsUnit);
+            return (dKnee - 5 * this.PipsUnit);
         }
         public double CalcStopLoss()
         {
@@ -590,28 +590,11 @@ namespace MBTrading
 
 
 
-            Boolean bLastLowZigZag = true;
+            
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
-                
-                int i;
-                int i2;
-                for (i = this.CandlesList.ZigZag5.Length - 1; i > 0; i--)
-                {
-                    if ((this.CandlesList.ZigZag5.LowMap[i] != 0) && (this.CandlesList.ZigZag5.ZigZagMap[i] == this.CandlesList.ZigZag5.LowMap[i]))
-                        break;
-                }
-                for (i2 = this.CandlesList.ZigZag5.Length - 1; i2 > i; i2--)
-                {
-                    if (this.CandlesList.ZigZag5.ZigZagMap[i2] != 0)
-                        bLastLowZigZag = false;
-                }
-
-
-
-
-                if (this.CandlesList.LastCandle.Prediction > 0)
+                if ((this.CandlesList.PrevCandle.WMADirection) && (this.CandlesList.LastCandle.Prediction > 0))
                     OffLineBuy(FindTheLastKnee(1), false);
             }
             else if ((bIsNewCandle) && (this.OffLineIsPosition))
@@ -719,7 +702,7 @@ namespace MBTrading
 			
 			this.Risk = this.BuyPrice - this.StopLoss;
 
-            this.PositionQuantity = Consts.QUANTITY;
+            this.PositionQuantity = Program.Quantity;
             this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.CurrPrice, this.Symbol, this.PositionQuantity);
 
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),

@@ -18,6 +18,7 @@ namespace MBTrading
         
         public static bool IsProgramAlive;
         public static double AccountBallance = Consts.QUANTITY;
+        public static int Quantity = Consts.QUANTITY;
         public static int nDayNum = 0;
         
 

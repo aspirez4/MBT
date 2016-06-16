@@ -58,6 +58,8 @@ namespace MBTrading.Utils
         public string symbol { get; set; }
         [DataMember(Order = 4)]
         public int chunkIndex { get; set; }
+        [DataMember(Order = 5)]
+        public int period { get; set; }
 
 
         public static string JsonSerializer(ElmanDataSet objectToSerialize)

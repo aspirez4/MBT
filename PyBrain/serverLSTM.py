@@ -29,7 +29,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if (s.path.startswith("/train")):
             del lstm
             gc.collect()
-            modelFileName = 'dumpModels/{}_{}.save'.format(data['symbol'], data['chunkIndex'])
+            modelFileName = 'dumpModels/{}_{}_{}.save'.format(data['period'], data['symbol'], data['chunkIndex'])
 			
             if (os.path.isfile(modelFileName)):
                 fileToOpen = open(modelFileName, 'rb')

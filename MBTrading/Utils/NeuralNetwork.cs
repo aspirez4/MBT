@@ -164,7 +164,8 @@ namespace MBTrading.Utils
                     input = i, 
                     target = t, 
                     symbol = this.Symbol.Remove(3, 1),
-                    chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count
+                    chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count,
+                    period = Consts.MINUTE_CANDLES_PRIMARY
                 };
 
                 Interlocked.Increment(ref NeuralNetwork.CountOfInstancesStartedTraining);
@@ -183,7 +184,8 @@ namespace MBTrading.Utils
             { 
                 input = new double[][] { new double[] { dValue, dValueMA } },
                 symbol = this.Symbol.Remove(3, 1),
-                chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count
+                chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count,
+                period = Consts.MINUTE_CANDLES_PRIMARY
             };
 
             string strPrediction = PythonUtils.CallNN(input, false, this.NNPort, this.M, this.dStandardDeviation).Result;

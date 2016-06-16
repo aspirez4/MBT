@@ -146,7 +146,6 @@ namespace MBTrading
 
             Console.WriteLine(string.Format("{0}{1}{2}{3}\n\n\n----------------------------------\nCurr  PL   :   {4}\n----------------------------------\nTotal Comm :   -{5}\nTotal PL   :   {6}\nTotal      :   {7}\n----------------------------------{8}\n\n\n\n{9}", UI.strMBTradingTitle, strTechDetails, strTableTitle, strShares, dCurrPLSum, dTotalCommSum, dTotalPLSum, dTotalPLSum - dTotalCommSum, string.Format("{0,10:0.0}", dAccuracy / dAccuracyCount), strSDV));
             Program.AccountBallance = Consts.QUANTITY + dTotalPLSum - dTotalCommSum;
-            Program.Quantity = (int)(Program.AccountBallance * 0.1);
             PushServer.SendTCPMessage(PushServer.RealtimeMessage(Program.AccountBallance, dTotalProfitSum, dTotalLossSum, Program.SharesList));
             PushServer.SendTCPMessage("2");
         }

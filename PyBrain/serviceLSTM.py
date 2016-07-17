@@ -7,7 +7,8 @@ class NN:
 
     learningFunction = None
     predictFunction  = None
-
+    StandardDeviation= None
+    M                = None
     dtype          = None
     trainingErrors = None
     act            = None
@@ -67,13 +68,17 @@ class NN:
         data = testingData
         count = 0
         mse = 0.0
+        T = 0
         for inputData, targetData in data:
             currPrediction   = self.predictFunction(inputData)
             mse = mse + ((targetData[0][0] - currPrediction[0][0]) ** 2)
             count += 1
+            if ((self.M - (np.log((1 / currPrediction[0][0]) - 1) * self.StandardDeviation)) * (self.M - (np.log((1 / targetData[0][0]) - 1) * self.StandardDeviation)) > 0) :
+                T += 1
             print 'Target  : {}'.format(targetData[0][0])
             print 'Predict : {}\n'.format(currPrediction[0][0])
-        print '{} MSE: {}'.format(symbol, (mse / count))
+        print '{} MSE: {}\n'.format(symbol, (mse / count))
+        print '{0} RTE: {1:.2f}%'.format(symbol, (T * 100 / count))
         return str(mse / count)
     
     def predict(self, inData):
@@ -124,8 +129,10 @@ class NN:
         self.nEpochs = nEpochs
         self.learningRate = learningRate 
 
-    def cTor(self, bNewInstance):
+    def cTor(self, bNewInstance, dataMean, dataStandardDeviation):
         print 'Start initializig NN . . .'
+        self.M = dataMean
+        self.StandardDeviation = dataStandardDeviation
         self.dtype = theano.config.floatX
         n_hidden = n_i = n_c = n_o = n_f = self.hidCount
         # therefore we use the logistic function

@@ -31,7 +31,7 @@ namespace MBTrading.Entities.Indicators
             clParentCandlesList.IndicatorsList.Add(this);
 
             // Initialize indicator
-            double Stochastic = 100 * ((clParentCandlesList.Candles[clParentCandlesList.CountDec].Close - clParentCandlesList.LowestPrice) / (clParentCandlesList.HighestPrice - clParentCandlesList.LowestPrice));
+            double Stochastic = 100 * ((clParentCandlesList.CurrPrice - clParentCandlesList.LowestPrice) / (clParentCandlesList.HighestPrice - clParentCandlesList.LowestPrice));
             this.Value = 50;
             this.Prev = 50; 
             this.AVGStochasticRSI_K = Stochastic;

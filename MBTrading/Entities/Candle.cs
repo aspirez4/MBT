@@ -137,7 +137,7 @@ namespace MBTrading
                                  this.ExtraList[1],
                                  this.ExtraList[2],
                                  this.PricesSum / this.NumOfPeiceUpdates,
-                                 this.Prediction,
+                                 this.ExtraList[this.ExtraList.Count - 5],
                                  sParentShare.OffLineCandleIndex));
             }
             catch { }

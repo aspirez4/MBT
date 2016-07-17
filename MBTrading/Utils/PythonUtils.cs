@@ -60,7 +60,10 @@ namespace MBTrading.Utils
         public int chunkIndex { get; set; }
         [DataMember(Order = 5)]
         public int period { get; set; }
-
+        [DataMember(Order = 6)]
+        public double dataMean { get; set; }
+        [DataMember(Order = 7)]
+        public double dataStandardDeviation { get; set; }
 
         public static string JsonSerializer(ElmanDataSet objectToSerialize)
         {

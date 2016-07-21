@@ -67,7 +67,7 @@ namespace MBTrading
             TDI             = new TDI();
             ZigZag5         = new ZigZag(5, false);
             ZigZag12        = new ZigZag(12, true);
-            ATR             = new ATR(20, 3);
+            ATR             = new ATR(7, 3);
             RSI.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);

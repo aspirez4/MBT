@@ -562,7 +562,7 @@ namespace MBTrading
                         this.tempList[nTempIndex] = this.CandlesList.NeuralNetworkRawData[nOffset + nTempIndex];
                     }
                     File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                        string.Format("8;{0};{1};{2}\n", this.Symbol, this.tempListNN.Average(), this.OffLineCandleIndex - 1));
+                        string.Format("8;{0};{1};{2}\n", this.Symbol, this.tempList.Average(), this.OffLineCandleIndex - 1));
                 }
                 if (this.CandlesList.NN != null)
                 {
@@ -593,7 +593,7 @@ namespace MBTrading
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
-                if ((this.CandlesList.LastCandle.Prediction > 0) && (this.CandlesList.CurrPrice < this.CandlesList.ATR.LongValue))
+                if ((this.CandlesList.LastCandle.Prediction > 0) && (this.CandlesList.CurrPrice > this.CandlesList.ATR.LongValue))
                 //if ((this.CandlesList.LastCandle.Prediction > 0) && (this.CandlesList.PrevCandle.EndTDI_Green > 50))
                     OffLineBuy(FindTheLastKnee(1), false);
             }

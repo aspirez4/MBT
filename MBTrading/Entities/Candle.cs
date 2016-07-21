@@ -119,7 +119,7 @@ namespace MBTrading
             {
                 File.AppendAllText(string.Format("{0}\\Candles\\{1}.txt", Consts.FilesPath, sParentShare.Symbol.Remove(3, 1)),
                    //string.Format("{0};o:{1};c:{2};h:{3};l:{4};w:{5};e:{6};a:{7};b:{8};co:{9};hl:{10};hc:{11};cl:{12};ab:{13};v:{14};i:{15}\n",
-                   string.Format("{0};{1};{2};{3};{4};{5};{6};{7};{10};{11};{12};{13};{14};{15};{17};{18}\n",
+                   string.Format("{0};{1};{2};{3};{4};{5};{6};{7};{10};{11};{12};{13};{14};{15};{16};{17};{18}\n",
                                  sParentShare.Symbol,
                                  this.R_Open,
                                  this.R_Close,
@@ -136,7 +136,7 @@ namespace MBTrading
                                  this.ExtraList[this.ExtraList.Count - 1],
                                  this.ExtraList[1],
                                  this.ExtraList[2],
-                                 this.PricesSum / this.NumOfPeiceUpdates,
+                                 this.ExtraList[this.ExtraList.Count - 6],
                                  this.ExtraList[this.ExtraList.Count - 5],
                                  sParentShare.OffLineCandleIndex));
             }

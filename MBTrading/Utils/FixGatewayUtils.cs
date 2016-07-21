@@ -975,8 +975,11 @@ namespace MBTrading
                                                         double dSoldPrice = double.Parse(dicCurrDic[6]);
 
                                                         sCurrShare.Commission += double.Parse(dicCurrDic[12]);  //FixGatewayUtils.CalculateCommission(sCurrShare.CandlesList.LastPrice, sCurrShare.Symbol, nOrderQuantityFilled);
-                                                        double dProfitOrLoss = FixGatewayUtils.CalculateProfit(sCurrShare.BuyPrice, dSoldPrice, sCurrShare.Symbol, nOrderQuantityFilled);
-                                                        MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, sCurrShare.Symbol, dProfitOrLoss, sCurrShare.CandleIndex, sCurrShare.CandleIndex - sCurrShare.BuyIndex, sCurrShare.BuyPrice, dSoldPrice);
+                                                        ///////////////////////////////////////////////////////
+                                                        // TODO: NOT CALCULATE PROFFIT AS IN THE COMMENT BELOW!!! TAKE THIS INFO DIRECTLY FROM THE MESSAGE LIKE DONE WITH THE COMMITION BEFORE!!!
+                                                        ///////////////////////////////////////////////////////
+                                                        double dProfitOrLoss = 0; // FixGatewayUtils.CalculateProfit(sCurrShare.BuyPrice, dSoldPrice, sCurrShare.Symbol, nOrderQuantityFilled);
+                                                        MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, sCurrShare.Symbol, dProfitOrLoss, sCurrShare.CandleIndex, sCurrShare.CandleIndex - sCurrShare.BuyIndex, sCurrShare.AverageBuyPrice, dSoldPrice);
 
                                                         sCurrShare.TotalPL += dProfitOrLoss;
                                                         if (dProfitOrLoss < 0)
@@ -996,8 +999,8 @@ namespace MBTrading
                                                         // There is no Leaves Quantity 
                                                         if (sCurrShare.PositionQuantity == 0)
                                                         {
-                                                            Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("SOLD - SoldPrice: PL:{0}Pips (Diff: LastPrice - SoldPAVG = {1}Pips)", 
-                                                                                                                                sCurrShare.PipsUnit * (Math.Round((dSoldPrice - sCurrShare.BuyPrice), 7)),
+                                                            Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("SOLD - SoldPrice: PL:{0}Pips (Diff: LastPrice - SoldPAVG = {1}Pips)",
+                                                                                                                                sCurrShare.PipsUnit * (Math.Round((dSoldPrice - sCurrShare.AverageBuyPrice), 7)),
                                                                                                                                 sCurrShare.PipsUnit * (Math.Round((sCurrShare.CandlesList.CurrPrice - dSoldPrice), 7))));
                                                             sCurrShare.SellIndex = sCurrShare.CandleIndex;
                                                             sCurrShare.SellPrice = dSoldPrice;
@@ -1006,7 +1009,7 @@ namespace MBTrading
                                                         else
                                                         {
                                                             Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("SOLD Partial - SoldPrice: PL:{0}Pips (Diff: LastPrice - SoldPAVG = {1}Pips)",
-                                                                                                                                sCurrShare.PipsUnit * (Math.Round((dSoldPrice - sCurrShare.BuyPrice), 7)),
+                                                                                                                                sCurrShare.PipsUnit * (Math.Round((dSoldPrice - sCurrShare.AverageBuyPrice), 7)),
                                                                                                                                 sCurrShare.PipsUnit * (Math.Round((sCurrShare.CandlesList.CurrPrice - dSoldPrice), 7))));
                                                         }
                                                     }

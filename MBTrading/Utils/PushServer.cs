@@ -67,7 +67,7 @@ namespace MBTrading.Utils
                     sCurrShare.CurrPL,
                     sCurrShare.TotalPL,
                     sCurrShare.BuyOrder == null ? 0 : sCurrShare.BuyOrder.LimitPrice,
-                    sCurrShare.BuyPrice,
+                    sCurrShare.AverageBuyPrice,
                     sCurrShare.StopLossOrders.Count == 0 && !sCurrShare.OffLineIsPosition ? 0 : sCurrShare.StopLoss));
             }
 

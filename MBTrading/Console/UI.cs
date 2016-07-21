@@ -102,7 +102,7 @@ namespace MBTrading
 
             foreach (Share sCurrShare in Program.SharesList.Values)
             {
-                sCurrShare.CurrPL = FixGatewayUtils.CalculateProfit(sCurrShare.BuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
+                sCurrShare.CurrPL = FixGatewayUtils.CalculateProfit(sCurrShare.AverageBuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
                 dCurrPLSum += sCurrShare.CurrPL;
                 dTotalProfitSum += sCurrShare.TotalProfit;
                 dTotalLossSum += sCurrShare.TotalLoss;    
@@ -115,9 +115,9 @@ namespace MBTrading
                                            sCurrShare.CandlesList.NN != null,
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
-                                           sCurrShare.BuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.BuyPrice),
+                                           sCurrShare.AverageBuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.AverageBuyPrice),
                                            sCurrShare.StopLoss == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.StopLoss),
-                                           sCurrShare.IsPosition ? string.Format("{0,7:0}", sCurrShare.PositionQuantity) : "       ",
+                                           sCurrShare.AverageBuyPrice == 0 ? "       " : string.Format("{0,7:0}", sCurrShare.PositionQuantity),
                                            string.Format("{0,10:0.0}", sCurrShare.CurrPL),
                                            string.Format("{0,10:0.0}", sCurrShare.TotalPL),
                                            string.Format("{0,10:0.00}", sCurrShare.Commission));
@@ -168,7 +168,7 @@ namespace MBTrading
                                                        sCurrShare.BuyOrder == null ? "" : sCurrShare.BuyOrder.ClientOrdID,
                                                        sCurrShare.StopLossOrders.Count == 0 ? "" : "Has StopLossOrder - " + sCurrShare.StopLossOrders.Count,
                                                        sCurrShare.StopLoss == 0 ? "" : string.Format("{0,6:0.00000}", sCurrShare.StopLoss),
-                                                       sCurrShare.BuyPrice == 0 ? "" : string.Format("{0,6:0.00000}", sCurrShare.BuyPrice),
+                                                       sCurrShare.AverageBuyPrice == 0 ? "" : string.Format("{0,6:0.00000}", sCurrShare.AverageBuyPrice),
                                                        0 > 0 ? "+" : "-",
                                                        0 > 0 ? "+" : "-",
                                                        sCurrShare.PricesQueue.Count,

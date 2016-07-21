@@ -144,7 +144,7 @@ namespace MBTrading.Utils
                          { "IsPossition" , ((sShare.OffLineIsPosition) || (sShare.IsPosition)) },
                          { "BuyIndicator", ((sShare.BuyIndex == sShare.CandleIndex) || (sShare.OffLineBuyIndex == sShare.OffLineCandleIndex)) },
                          { "SellIndicator", ((sShare.SellIndex == sShare.CandleIndex) || (sShare.OffLineSellIndex == sShare.OffLineCandleIndex)) },
-                         { "BuyPrice", sShare.BuyPrice },
+                         { "BuyPrice", sShare.AverageBuyPrice },
                          { "SellPrice", sShare.SellPrice}
                     };
 

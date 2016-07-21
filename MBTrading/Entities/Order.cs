@@ -68,7 +68,7 @@ namespace MBTrading
             this.ParrentShare.PositionQuantity = nFilledQuantitiy;
             this.OrderFilledQuantity = nFilledQuantitiy;
             this.AVGEXEPrice = dAVGPrice;
-            this.ParrentShare.BuyPrice = dAVGPrice;
+            this.ParrentShare.AverageBuyPrice = dAVGPrice;
             this.OrderID = strOrderID;  
             this.LimitPrice = dLimit;
             this.Progress++;

@@ -93,6 +93,7 @@
     <Compile Include="Entities\Candle.cs" />
     <Compile Include="Entities\CandlesList.cs" />
     <Compile Include="Entities\ChangingPriceForOrder.cs" />
+    <Compile Include="Entities\Indicators\ATR.cs" />
     <Compile Include="Entities\Indicators\Awesome.cs" />
     <Compile Include="Entities\Indicators\EMA.cs" />
     <Compile Include="Entities\Indicators\Indicator.cs" />

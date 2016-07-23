@@ -18,7 +18,7 @@ namespace MBTrading.Entities.Indicators
             clParentCandlesList.IndicatorsList.Add(this);
 
             // Initialize indicator
-            this.Value = 100 * ((clParentCandlesList.Candles[clParentCandlesList.CountDec].Close - clParentCandlesList.LowestPrice) / (clParentCandlesList.HighestPrice - clParentCandlesList.LowestPrice));
+            this.Value = 100 * ((this.ParentCandleList.CurrPrice - clParentCandlesList.LowestPrice) / (clParentCandlesList.HighestPrice - clParentCandlesList.LowestPrice));
             this.Prev = this.Value;
         }
 

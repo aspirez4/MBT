@@ -35,11 +35,11 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 fileToOpen = open(modelFileName, 'rb')
                 lstm = NN( nEpochs = int(sys.argv[2]) )
                 lstm.__setstate__(cPickle.load(fileToOpen))
-                lstm.cTor(False)
+                lstm.cTor(False, data['dataMean'], data['dataStandardDeviation'])
                 fileToOpen.close()
             else:
                 lstm = NN( nEpochs = int(sys.argv[2]) )
-                lstm.cTor(True)
+                lstm.cTor(True, data['dataMean'], data['dataStandardDeviation'])
                 lstm.train(inData = data['input'], outData = data['target'])
                 # save the LSTM Model
                 fileToSave = open(modelFileName, 'wb')

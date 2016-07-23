@@ -37,6 +37,7 @@ namespace MBTrading
         public TDI              TDI;
         public ZigZag           ZigZag5;
         public ZigZag           ZigZag12;
+        public ATR              ATR;
 
         // Neural Network
         public int P, N              = 0;
@@ -58,7 +59,7 @@ namespace MBTrading
             this.LowestPrice                    = double.MaxValue;
             this.HighestPrice                   = double.MinValue;
 
-            // Register Indicators // RSI > StochasticRSI > Stochastic > SMA > EMA > WMA > Awesome > TDI > ZigZag
+            // Register Indicators // RSI > StochasticRSI > Stochastic > SMA > EMA > WMA > Awesome > TDI > ZigZag > ATR
             RSI             = new RSI();
             SMA             = new SMA();
             EMA             = new EMA();
@@ -66,13 +67,15 @@ namespace MBTrading
             TDI             = new TDI();
             ZigZag5         = new ZigZag(5, false);
             ZigZag12        = new ZigZag(12, true);
+            ATR             = new ATR(7, 3.5);
             RSI.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);
             WMA.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
-            ZigZag5.RegisterIndicator(this);
-            ZigZag12.RegisterIndicator(this);
+//          ZigZag5.RegisterIndicator(this);
+//          ZigZag12.RegisterIndicator(this);
+            ATR.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 
             this.IndicatorsList.ForEach(I => I.NewIndicatorValue());
@@ -120,10 +123,14 @@ namespace MBTrading
                 //this.LastCandle.ExtraList.Add(this.Stochastic.Value);
                 //this.LastCandle.ExtraList.Add(this.StochasticRSI.Value);
                 //this.LastCandle.ExtraList.Add(this.Awesome.Value);
+                this.LastCandle.ExtraList.Add(this.ATR.ChandelierShortValue);
+                this.LastCandle.ExtraList.Add(this.ATR.ChandelierLongValue);
+                this.LastCandle.ExtraList.Add(this.ATR.ATR_Value);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Green);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Red);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Upper);
                 this.LastCandle.ExtraList.Add(this.TDI.TDI_Lower);
+                
 
                 // Log Candle
                 this.LastCandle.LogCandle(this.ParentShare, this.SMA.LowerBollinger);

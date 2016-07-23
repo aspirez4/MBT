@@ -102,7 +102,7 @@ namespace MBTrading
 
             foreach (Share sCurrShare in Program.SharesList.Values)
             {
-                sCurrShare.CurrPL = FixGatewayUtils.CalculateProfit(sCurrShare.AverageBuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
+                sCurrShare.CurrPL = sCurrShare.BuyDirection * FixGatewayUtils.CalculateProfit(sCurrShare.AverageBuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
                 dCurrPLSum += sCurrShare.CurrPL;
                 dTotalProfitSum += sCurrShare.TotalProfit;
                 dTotalLossSum += sCurrShare.TotalLoss;    

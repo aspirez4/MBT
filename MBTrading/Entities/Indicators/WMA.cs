@@ -10,8 +10,8 @@ namespace MBTrading.Entities.Indicators
         public CandlesList ParentCandleList = null;
         public double Value;
         public double Prev;
-        public bool Direction;
-        public bool PrevDirection;
+        public bool   Direction;
+        public bool   PrevDirection;
         private int WMAParametersDenominator;
 
         public void RegisterIndicator(CandlesList clParentCandlesList)

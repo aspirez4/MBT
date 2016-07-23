@@ -165,7 +165,9 @@ namespace MBTrading.Utils
                     target = t, 
                     symbol = this.Symbol.Remove(3, 1),
                     chunkIndex = (NeuralNetwork.CountOfLivedInstances - 1) / Program.SharesList.Count,
-                    period = Consts.MINUTE_CANDLES_PRIMARY
+                    period = Consts.MINUTE_CANDLES_PRIMARY,
+                    dataStandardDeviation = this.dStandardDeviation,
+                    dataMean = this.M
                 };
 
                 Interlocked.Increment(ref NeuralNetwork.CountOfInstancesStartedTraining);

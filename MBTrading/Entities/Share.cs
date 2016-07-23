@@ -58,7 +58,6 @@ namespace MBTrading
         public double                               AverageBuyPrice;
         public double                               SellPrice;
         public double                               StopLoss;
-        public double                               StopLossDemo;
         public int                                  PositionQuantity;
         public bool                                 PositionsReport;
         public ConcurrentDictionary<string, Order>  StopLossOrders;
@@ -70,6 +69,7 @@ namespace MBTrading
         public double                               PipsToPartial;
         public int                                  CandleIndex = 0;
         public int                                  BuyIndex = -1;
+        public int                                  BuyDirection = -1;
         public int                                  SellIndex = -2;
          
         public bool                                 OffLineIsPosition                    = false;
@@ -102,7 +102,6 @@ namespace MBTrading
             this.AverageBuyPrice            = 0;
             this.SellPrice                  = 0;
             this.StopLoss                   = 0;
-            this.StopLossDemo               = 0;
             this.StopLossOrders             = new ConcurrentDictionary<string, Order>();
             this.IsPosition                 = false;
             this.IsBuyOrderSentOrExecuted   = false;
@@ -152,7 +151,6 @@ namespace MBTrading
             this.SellIndex = 0;
             this.AverageBuyPrice = 0;
             this.StopLoss = 0;
-            this.StopLossDemo = 0;
             this.CurrPL = 0;
             this.PositionsReport = false;
 
@@ -506,21 +504,33 @@ namespace MBTrading
 
         public double FindTheLastKnee(int nNumOfCandlesToStartBack)
         {
+            bool bSearchDirection = (this.IsPosition || this.OffLineIsPosition) ? (this.BuyDirection == 1) : (this.CandlesList.WMA.PrevDirection);
+            int nSearchDirection = bSearchDirection ? 1 : -1;
             double dKnee = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].R_Low;
 
             bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
             for (int nWMADirIndex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirIndex > 0; nWMADirIndex--)
             {
-                if ((!bWMADir) && (this.CandlesList.Candles[nWMADirIndex].WMADirection))
-                    break;
+                if (bSearchDirection)
+                {
+                    if ((!bWMADir) && (this.CandlesList.Candles[nWMADirIndex].WMADirection))
+                        break;
 
-                if (dKnee > this.CandlesList.Candles[nWMADirIndex].R_Low)
-                    dKnee = this.CandlesList.Candles[nWMADirIndex].R_Low;
+                    if (dKnee > this.CandlesList.Candles[nWMADirIndex].R_Low)
+                        dKnee = this.CandlesList.Candles[nWMADirIndex].R_Low;
+                }
+                else
+                {
+                    if ((bWMADir) && (!this.CandlesList.Candles[nWMADirIndex].WMADirection))
+                        break;
 
+                    if (dKnee < this.CandlesList.Candles[nWMADirIndex].R_High)
+                        dKnee = this.CandlesList.Candles[nWMADirIndex].R_High;
+                }
                 bWMADir = this.CandlesList.Candles[nWMADirIndex].WMADirection;
             }
 
-            return (dKnee - 5 * this.PipsUnit);
+            return (dKnee + (5 * this.PipsUnit * nSearchDirection));
         }
         public double CalcStopLoss()
         {
@@ -610,19 +620,23 @@ namespace MBTrading
 
 
 
-            
+
+            double dPercVola = this.CandlesList.ATR.GetTR(this.CandlesList.Candles[this.CandlesList.CountDec - 1], this.CandlesList.Candles[this.CandlesList.CountDec - 2]) / this.CandlesList.ATR.ATR_Value;
 
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
-                //if (this.CandlesList.LastCandle.Prediction > 0)
-                if ((this.CandlesList.LastCandle.Prediction > 0) && (this.CandlesList.PrevCandle.EndTDI_Green > 50))
-                {
-                    OffLineBuy(FindTheLastKnee(1), (int)(Program.Quantity * 2 * this.CandlesList.LastCandle.Prediction / 0.001));
-                    this.StopLossDemo = this.StopLoss;
-                }
+                
+                if (((this.CandlesList.LastCandle.Prediction > 0) && this.CandlesList.WMA.PrevDirection) || 
+                    ((this.CandlesList.LastCandle.Prediction < 0) && !this.CandlesList.WMA.PrevDirection)) // && (this.CandlesList.CurrPrice > this.CandlesList.ATR.LongValue - 5 * this.PipsUnit)) 
+                    OffLineBuy(FindTheLastKnee(1), (int)(Program.Quantity * dPercVola));
             }
             else if ((bIsNewCandle) && (this.OffLineIsPosition))
             {
+// ATR /////////////////////////////////////////////////
+//                double tempATR = this.CandlesList.ATR.LongValue - 5 * this.PipsUnit;
+//                this.StopLoss = (this.StopLoss < tempATR) ? tempATR : this.StopLoss;
+// ATR /////////////////////////////////////////////////
+
                 Candle cMegaPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 3];
                 Candle cBeforePreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 2];
                 Candle cPreviousCandle = this.CandlesList.Candles[this.CandlesList.CountDec - 1];
@@ -640,27 +654,20 @@ namespace MBTrading
                     // this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
                     // this.CrossIndicator = false;
                     double dTemp = FindTheLastKnee(1);
-                    if (this.StopLossDemo < dTemp)
-                    {
-                        this.StopLossDemo = dTemp;
-                        OffLineBuy(this.StopLoss, Program.Quantity);
+                    if (this.BuyDirection * (this.StopLoss - dTemp) < 0)
+                    {                        
+                        this.StopLoss = dTemp;
+                        //OffLineBuy(this.StopLoss, (int)(Program.Quantity * dPercVola));
                         File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                             string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
                     }
                 }
 
-                if (this.CandlesList.PrevCandle.EndTDI_Green < 50)
-                    this.StopLoss = this.StopLossDemo;
-
-                if ((this.BuyPrices.Count == 1) && (this.AverageBuyPrice > this.StopLoss) && (this.OffLineBuyIndex + 4 < this.OffLineCandleIndex) && (this.CandlesList.LastCandle.Bid > this.AverageBuyPrice)) // && (this.CandlesList.LastCandle.Ask > this.AverageBuyPrice))
-                {
-                    this.StopLoss = AverageBuyPrice;
-                }
                 #endregion
             }
 
             //if ((OffLineIsPosition) && (this.CandlesList.LastCandle.Prediction < this.CandlesList.PrevCandle.Prediction)) // || (this.CandlesList.CurrPrice <= this.StopLoss)))
-            if ((OffLineIsPosition) && (this.CandlesList.CurrPrice <= this.StopLoss))
+            if ((OffLineIsPosition) && (this.BuyDirection * (this.CandlesList.CurrPrice - this.StopLoss) <= 0))
             {
                 OffLineSell(false);
             }
@@ -726,6 +733,7 @@ namespace MBTrading
         public void OffLineBuy(double dStopLoss, int nQuantity)
         {
             // BUYYYYYYYYYYY
+            this.BuyDirection = this.CandlesList.WMA.PrevDirection ? 1 : -1;
             this.StartReversalIndex = 0;
             this.OffLineBuyIndex = this.OffLineBuyIndex == 0 ? this.OffLineCandleIndex : this.OffLineBuyIndex;
 
@@ -762,6 +770,7 @@ namespace MBTrading
             foreach (Pair pBuy in this.BuyPrices.Values)
                 dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.CandlesList.LastCandle.Bid, this.Symbol, pBuy.Quantity);
 
+            dPL = dPL * this.BuyDirection;
             MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, this.Symbol, dPL, this.OffLineCandleIndex, this.OffLineCandleIndex - this.OffLineBuyIndex, this.AverageBuyPrice, this.CandlesList.LastCandle.Bid);
             this.TotalPL += dPL;
             if (dPL < 0)

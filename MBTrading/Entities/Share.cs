@@ -692,7 +692,7 @@ namespace MBTrading
             }
 
 
-            double dProfit = this.BuyDirection * FixGatewayUtils.CalculateProfit(this.AverageBuyPrice, this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity);
+            double dProfit = this.BuyDirection * FixGatewayUtils.CalculateProfit(this.AverageBuyPrice, this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity / 2);
             if ((this.FirstStopLoss != -1) && (dProfit > this.Risk) && (this.PositionQuantity / 2 > 1000))
             {
                 OffLinePartialSell(this.PositionQuantity / 2);

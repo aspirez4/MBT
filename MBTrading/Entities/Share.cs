@@ -47,6 +47,7 @@ namespace MBTrading
         public ConcurrentQueue<MarketData>          PricesQueue;
         public Order                                BuyOrder;
         public double                               TotalPL;
+        public double                               TotalPipsPL;
         public double                               TotalProfit;
         public double                               TotalLoss;
         public double                               CurrPL;
@@ -93,6 +94,7 @@ namespace MBTrading
             this.PricesQueue                = new ConcurrentQueue<MarketData>();
             this.ChangingStopPirce          = new ChangingPriceForOrder();
             this.BuyOrder                   = null;
+            this.TotalPipsPL                = 0;
             this.CurrPL                     = 0;
             this.TotalPL                    = 0;
             this.TotalProfit                = 0;
@@ -504,16 +506,15 @@ namespace MBTrading
 
 
 
-        public double FindTheLastKnee(int nNumOfCandlesToStartBack)
+        public double FindTheLastKnee(int nNumOfCandlesToStartBack, bool bLong)
         {
-            bool bSearchDirection = (this.IsPosition || this.OffLineIsPosition) ? (this.BuyDirection == 1) : (this.CandlesList.WMA.PrevDirection);
-            int nSearchDirection = bSearchDirection ? 1 : -1;
+            int nSearchDirection = bLong ? 1 : -1;
             double dKnee = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].R_Low;
 
             bool bWMADir = this.CandlesList.Candles[this.CandlesList.CountDec - nNumOfCandlesToStartBack].WMADirection;
             for (int nWMADirIndex = this.CandlesList.CountDec - nNumOfCandlesToStartBack - 1; nWMADirIndex > 0; nWMADirIndex--)
             {
-                if (bSearchDirection)
+                if (bLong)
                 {
                     if ((!bWMADir) && (this.CandlesList.Candles[nWMADirIndex].WMADirection))
                         break;
@@ -622,19 +623,21 @@ namespace MBTrading
 
 
 
-
+            
             if ((bIsNewCandle) && (this.CandlesList.NN != null) && (!this.OffLineIsPosition))
             {
 
-                if (((this.CandlesList.LastCandle.Prediction > 0) && this.CandlesList.WMA.PrevDirection) ||
-                    ((this.CandlesList.LastCandle.Prediction < 0) && !this.CandlesList.WMA.PrevDirection)) // && (this.CandlesList.CurrPrice > this.CandlesList.ATR.LongValue - 5 * this.PipsUnit)) 
+                if (Math.Abs(this.CandlesList.LastCandle.Prediction) > 0) // && this.CandlesList.WMA.PrevDirection) ||
+      //              ((this.CandlesList.LastCandle.Prediction < 0) && !this.CandlesList.WMA.PrevDirection)) // && (this.CandlesList.CurrPrice > this.CandlesList.ATR.LongValue - 5 * this.PipsUnit)) 
                 {
-                    OffLineBuy(this.CandlesList.WMA.PrevDirection ? this.CandlesList.ATR.ChandelierLongValue : this.CandlesList.ATR.ChandelierShortValue, (int)(Program.Quantity * Math.Abs(2 * this.CandlesList.LastCandle.Prediction / 0.001)));
-                    this.FirstStopLoss = FindTheLastKnee(1);
+                    ////////////////////////// Quentity ----> (int)(Program.Quantity * Math.Abs(2 * this.CandlesList.LastCandle.Prediction / 0.001))
+                    OffLineBuy(this.CandlesList.WMA.PrevDirection ? this.CandlesList.ATR.ChandelierLongValue : this.CandlesList.ATR.ChandelierShortValue, Program.Quantity, this.CandlesList.LastCandle.Prediction > 0);
+                    this.FirstStopLoss = FindTheLastKnee(1, this.BuyDirection == 1);
                 }
             }
             else if ((bIsNewCandle) && (this.OffLineIsPosition))
             {
+                this.Risk = Math.Abs(FixGatewayUtils.CalculateProfit(this.FirstStopLoss, this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity));
 // ATR /////////////////////////////////////////////////
 //                double tempATR = this.CandlesList.ATR.LongValue - 5 * this.PipsUnit;
 //                this.StopLoss = (this.StopLoss < tempATR) ? tempATR : this.StopLoss;
@@ -652,20 +655,26 @@ namespace MBTrading
                 // Set the indicator to True when => Cross occurd || already set it befor to True
                 this.CrossIndicator = (((bCrossMA) && (this.OffLineIsPosition)) || (this.CrossIndicator));
 
-                if ((!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.BuyDirection == 1) || // && this.CrossIndicator && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
-                    (cBeforePreviousCandle.WMADirection && !cPreviousCandle.WMADirection && this.BuyDirection == -1))
-                {
+           
                     // this.StopLoss = Math.Min(cBeforePreviousCandle.R_Low, cPreviousCandle.R_Low) - (this.PipsUnit * 2);
                     // this.CrossIndicator = false;
-                    double dTemp = FindTheLastKnee(1);
+                    double dTemp = FindTheLastKnee(1, this.BuyDirection == 1);
                     if (this.FirstStopLoss == -1)
                     {
-                        if (this.BuyDirection * (this.StopLoss - dTemp) < 0)
+                        if ((!cBeforePreviousCandle.WMADirection && cPreviousCandle.WMADirection && this.BuyDirection == 1) || // && this.CrossIndicator && this.CandlesList.EMA.Value > this.CandlesList.WMA.Value)
+                            (cBeforePreviousCandle.WMADirection && !cPreviousCandle.WMADirection && this.BuyDirection == -1))
                         {
-                            this.StopLoss = dTemp;
-                            OffLineBuy(this.StopLoss, (int)(Program.Quantity));
-                            File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                                string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+                            if (this.BuyDirection * (this.StopLoss - dTemp) < 0)
+                            {
+                                this.StopLoss = dTemp;
+                                // Same prediction as the original direction
+                                if (this.CandlesList.LastCandle.Prediction * this.BuyDirection > 0)
+                                {
+                                    OffLineBuy(this.StopLoss, (int)(Program.Quantity), this.BuyDirection == 1);
+                                }
+                                File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
+                                    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
+                            }
                         }
                     }
                     else
@@ -677,15 +686,21 @@ namespace MBTrading
                             this.FirstStopLoss = -1;
                         }
                     }
-                }
+                
 
                 #endregion
             }
 
+
+            double dProfit = this.BuyDirection * FixGatewayUtils.CalculateProfit(this.AverageBuyPrice, this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity);
+            if ((this.FirstStopLoss != -1) && (dProfit > this.Risk) && (this.PositionQuantity / 2 > 1000))
+            {
+                OffLinePartialSell(this.PositionQuantity / 2);
+            }
             //if ((OffLineIsPosition) && (this.CandlesList.LastCandle.Prediction < this.CandlesList.PrevCandle.Prediction)) // || (this.CandlesList.CurrPrice <= this.StopLoss)))
             if ((OffLineIsPosition) && (this.BuyDirection * (this.CandlesList.CurrPrice - this.StopLoss) <= 0))
             {
-                OffLineSell(false);
+                OffLineSell();
             }
             /*
             #region Long!
@@ -746,10 +761,10 @@ namespace MBTrading
             #endregion
             */
         }
-        public void OffLineBuy(double dStopLoss, int nQuantity)
+        public void OffLineBuy(double dStopLoss, int nQuantity, bool bLong)
         {
             // BUYYYYYYYYYYY
-            this.BuyDirection = this.CandlesList.WMA.PrevDirection ? 1 : -1;
+            this.BuyDirection = bLong ? 1 : -1;
             this.StartReversalIndex = 0;
             this.OffLineBuyIndex = this.OffLineBuyIndex == 0 ? this.OffLineCandleIndex : this.OffLineBuyIndex;
 
@@ -770,7 +785,7 @@ namespace MBTrading
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("1;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Ask, this.OffLineCandleIndex));
         }
-        public void OffLineSell(bool bLong)
+        public void OffLineSell()
         {
             // SELLLLLLLLLL
             this.UpdateShareConsts();
@@ -782,11 +797,14 @@ namespace MBTrading
             this.OffLineIsPosition = false;
 			this.bWasPartiald = false;
             this.OffLineBuyIndex = 0;
+            
             this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity);
             double dPL = 0;
             foreach (Pair pBuy in this.BuyPrices.Values)
+            {
                 dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.CandlesList.LastCandle.Bid, this.Symbol, pBuy.Quantity);
-
+                this.TotalPipsPL += (this.BuyDirection * (this.CandlesList.LastCandle.Bid - pBuy.Price)) / this.PipsUnit;
+            }
             dPL = dPL * this.BuyDirection;
             MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, this.Symbol, dPL, this.OffLineCandleIndex, this.OffLineCandleIndex - this.OffLineBuyIndex, this.AverageBuyPrice, this.CandlesList.LastCandle.Bid);
             this.TotalPL += dPL;
@@ -798,9 +816,29 @@ namespace MBTrading
             this.StopLoss = 0;
             this.PositionQuantity = 0;
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                string.Format("0;{0};{1};{2}\n", this.Symbol, this.CandlesList.LastCandle.Bid, this.OffLineCandleIndex));
+                string.Format("0;{0};{1};{2};{3}\n", this.Symbol, this.CandlesList.LastCandle.Bid, this.BuyDirection, this.OffLineCandleIndex));
         }
-        
+        public void OffLinePartialSell(int nQuentity)
+        {
+            // SELLLLLLLLLL
+            this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity);
+            double dPL = 0;
+            foreach (Pair pBuy in this.BuyPrices.Values)
+            {
+                pBuy.Quantity = pBuy.Quantity - nQuentity;
+                dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.CandlesList.LastCandle.Bid, this.Symbol, nQuentity);
+                this.TotalPipsPL += (this.BuyDirection * (this.CandlesList.LastCandle.Bid - pBuy.Price)) / this.PipsUnit;
+            }
+            dPL = dPL * this.BuyDirection;
+            MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, this.Symbol, dPL, this.OffLineCandleIndex, this.OffLineCandleIndex - this.OffLineBuyIndex, this.AverageBuyPrice, this.CandlesList.LastCandle.Bid);
+            this.TotalPL += dPL;
+            if (dPL < 0)
+            { this.TotalLoss += dPL; }
+            else
+            { this.TotalProfit += dPL; }
+
+            this.PositionQuantity = this.PositionQuantity - nQuentity;
+        }
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {
             //double dPossibleStopLoss = 0;

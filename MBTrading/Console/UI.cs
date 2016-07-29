@@ -97,7 +97,7 @@ namespace MBTrading
             double dTotalPLSum = 0;
             double dTotalCommSum = 0;
             double dCurrPLSum = 0;
-            double dAccuracy = 0;
+            double dTotalPipsPL = 0;
             double dAccuracyCount = 0;
 
             foreach (Share sCurrShare in Program.SharesList.Values)
@@ -107,6 +107,7 @@ namespace MBTrading
                 dTotalProfitSum += sCurrShare.TotalProfit;
                 dTotalLossSum += sCurrShare.TotalLoss;    
                 dTotalPLSum += sCurrShare.TotalPL;
+                dTotalPipsPL += (sCurrShare.TotalPipsPL);
                 dTotalCommSum += sCurrShare.Commission;
 
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
@@ -121,12 +122,6 @@ namespace MBTrading
                                            string.Format("{0,10:0.0}", sCurrShare.CurrPL),
                                            string.Format("{0,10:0.0}", sCurrShare.TotalPL),
                                            string.Format("{0,10:0.00}", sCurrShare.Commission));
-
-                if (sCurrShare.CandlesList.NN != null)
-                {
-                    dAccuracy += (sCurrShare.CandlesList.NN.Accuracy * 100);
-                    dAccuracyCount++;
-                }
             }
 
             string strSDV = string.Empty;
@@ -144,7 +139,7 @@ namespace MBTrading
 
 
 
-            Console.WriteLine(string.Format("{0}{1}{2}{3}\n\n\n----------------------------------\nCurr  PL   :   {4}\n----------------------------------\nTotal Comm :   -{5}\nTotal PL   :   {6}\nTotal      :   {7}\n----------------------------------{8}\n\n\n\n{9}", UI.strMBTradingTitle, strTechDetails, strTableTitle, strShares, dCurrPLSum, dTotalCommSum, dTotalPLSum, dTotalPLSum - dTotalCommSum, string.Format("{0,10:0.0}", dAccuracy / dAccuracyCount), strSDV));
+            Console.WriteLine(string.Format("{0}{1}{2}{3}\n\n\n----------------------------------\nCurr  PL   :   {4}\n----------------------------------\nTotal Comm :   -{5}\nTotal PL   :   {6}\nTotal      :   {7}\n----------------------------------{8}\n\n\n\n{9}", UI.strMBTradingTitle, strTechDetails, strTableTitle, strShares, dCurrPLSum, dTotalCommSum, dTotalPLSum, dTotalPLSum - dTotalCommSum, string.Format("{0,10:0.0}", dTotalPipsPL), strSDV));
             Program.AccountBallance = Consts.QUANTITY + dTotalPLSum - dTotalCommSum;
             PushServer.SendTCPMessage(PushServer.RealtimeMessage(Program.AccountBallance, dTotalProfitSum, dTotalLossSum, Program.SharesList));
             PushServer.SendTCPMessage("2");

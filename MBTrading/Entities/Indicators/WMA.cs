@@ -13,6 +13,7 @@ namespace MBTrading.Entities.Indicators
         public bool   Direction;
         public bool   PrevDirection;
         private int WMAParametersDenominator;
+        private int IntervalCounter = 0;
 
         public void RegisterIndicator(CandlesList clParentCandlesList)
         {
@@ -26,8 +27,17 @@ namespace MBTrading.Entities.Indicators
 
         public void NewIndicatorValue()
         {
-            this.Prev = this.Value;
-            this.PrevDirection = this.Direction;
+            if (IntervalCounter == 0)
+            {
+                IntervalCounter = Consts.WMA_INTERVAL_LENGTH;
+                this.Prev = this.Value;
+                this.PrevDirection = this.Direction;
+            }
+            else
+            {
+                IntervalCounter--;
+            }
+
             this.UpdateIndicatorValue();
         }
 

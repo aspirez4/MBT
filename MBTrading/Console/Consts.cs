@@ -14,6 +14,7 @@ namespace MBTrading
         public static int          STOCHASTIC_PARAMETERS_D_SMOOTHING_LENGTH;
         public static int          RSI_PARAMETERS_LENGTH;
         public static int          WMA_PARAMETERS_LENGTH;
+        public static int          WMA_INTERVAL_LENGTH;
         public static int          esMA_PARAMETERS_LENGTH;
         public static double       esMA_PARAMETERS_PERCENTAGE;
         public static string       SYMBOLS_NAMES_FILE_PATH;                                                                            
@@ -77,9 +78,10 @@ namespace MBTrading
             STOCHASTIC_PARAMETERS_D_SMOOTHING_LENGTH    = int.Parse(ConfigurationManager.AppSettings["STOCHASTIC_PARAMETERS_D_SMOOTHING_LENGTH"]);
             RSI_PARAMETERS_LENGTH                       = int.Parse(ConfigurationManager.AppSettings["RSI_PARAMETERS_LENGTH"]);
             WMA_PARAMETERS_LENGTH                       = int.Parse(ConfigurationManager.AppSettings["WMA_PARAMETERS_LENGTH"]);
+            WMA_INTERVAL_LENGTH                         = int.Parse(ConfigurationManager.AppSettings["WMA_INTERVAL_LENGTH"]);
             esMA_PARAMETERS_LENGTH                      = int.Parse(ConfigurationManager.AppSettings["esMA_PARAMETERS_LENGTH"]);
             esMA_PARAMETERS_PERCENTAGE                  = double.Parse(ConfigurationManager.AppSettings["esMA_PARAMETERS_PERCENTAGE"]);
-            NUM_OF_CANDLES                              = Math.Max(Math.Max(STOCHASTIC_PARAMETERS_LENGTH, RSI_PARAMETERS_LENGTH), esMA_PARAMETERS_LENGTH) + 1;
+            NUM_OF_CANDLES                              = Math.Max(Math.Max(Math.Max(STOCHASTIC_PARAMETERS_LENGTH, RSI_PARAMETERS_LENGTH), esMA_PARAMETERS_LENGTH), WMA_PARAMETERS_LENGTH) + 1;
 
             SYMBOLS_NAMES_FILE_PATH             = ConfigurationManager.AppSettings["SYMBOLS_NAMES_FILE_PATH"];
             QUANTITY                            = int.Parse(ConfigurationManager.AppSettings["QUANTITY"]);

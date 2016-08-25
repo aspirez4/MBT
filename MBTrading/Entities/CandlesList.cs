@@ -138,7 +138,7 @@ namespace MBTrading
 
                 // if (this.NeuralNetworkRawData.Count == Consts.NEURAL_NETWORK_NUM_OF_TRAINING_CANDLES) { this.NeuralNetworkRawData.RemoveAt(0); }
                 this.NeuralNetworkRawData.RemoveAt(0);
-                this.NeuralNetworkRawData.Add(Math.Log(this.Candles[this.CountDec].R_Close / 
+                this.NeuralNetworkRawData.Add(Math.Log(this.Candles[this.CountDec].R_Close /
                                                        this.Candles[this.CountDec - Consts.NEURAL_NETWORK_PREDICTION_INTERVAL].R_Close, Math.E));
 
                 // New candle

@@ -78,6 +78,7 @@ class NN:
             print 'Target  : {}'.format(targetData[0][0])
             print 'Predict : {}\n'.format(currPrediction[0][0])
         print '{} MSE: {}\n'.format(symbol, (mse / count))
+        print 'M: {}    S: {}\n'.format(self.M, self.StandardDeviation)
         print '{0} RTE: {1:.2f}%'.format(symbol, (T * 100 / count))
         return str(mse / count)
     

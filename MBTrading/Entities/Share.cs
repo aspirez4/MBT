@@ -604,6 +604,14 @@ namespace MBTrading
                 if (this.CandlesList.NN != null)
                 {
                     List<double> lstTempNormlized = this.CandlesList.NN.KondratenkoKuperinNormalizeAsModuleTrainingSet(this.tempList);
+
+
+
+                    double dReal = this.tempList[tempList.Count - 1];
+                    CandleAfterStrongMinIndex += (this.CandlesList.PrevCandle.Prediction * dReal) > 0 ? 1 : 0;
+                    ReversalStopLimitPrice++;
+
+
                     this.CandlesList.LastCandle.Prediction = this.CandlesList.NeuralNetworPredict(lstTempNormlized[lstTempNormlized.Count - 1], lstTempNormlized.Average());
                     this.tempListNN.Add(this.CandlesList.LastCandle.Prediction);
                     this.tempListNN.RemoveAt(0);

@@ -113,7 +113,7 @@ namespace MBTrading
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
                                            sCurrShare.Symbol,
                                            string.Format("{0,10:0.00000}", sCurrShare.CandlesList.CurrPrice),
-                                           string.Format("{0,10:0.00000}",sCurrShare.Risk),
+                                           string.Format("{0,10:0.00000}", sCurrShare.CandlesList.LastCandle.Prediction),
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.AverageBuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.AverageBuyPrice),

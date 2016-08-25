@@ -26,8 +26,8 @@ namespace MBTrading.Utils
         private List<double> NormalizedData;
         private int NN_MA_Length;
         private string NNPort;
-        private double M;
-        private double dStandardDeviation;
+        public double M;
+        public double dStandardDeviation;
         private string Symbol;
 
         public NeuralNetwork(int nMA_Length, List<double> lstRowData, string strSymbol)
@@ -105,7 +105,7 @@ namespace MBTrading.Utils
             {
                 lstMA.RemoveAt(0);
                 lstMA.Add(lstListToSet[nIndex]);
-                
+
                 // Getting the output by the avg
                 dOutput = lstMA.Average();
 
@@ -116,7 +116,7 @@ namespace MBTrading.Utils
 
                 // Get the inputValues for the next hop
                 dInput1 = lstListToSet[nIndex];
-                dInput2 = dOutput;
+                dInput2 = lstMA.Average(); 
             }
         }
         
@@ -194,7 +194,7 @@ namespace MBTrading.Utils
             double dPrediction = double.Parse(strPrediction);
 
             // Reverse normalization
-            dToReturn = this.M - (Math.Log((1 / dPrediction) - 1, Math.E) * this.dStandardDeviation);
+            dToReturn = this.M - (Math.Log((1 / dPrediction) - 1) * this.dStandardDeviation);
 
             return (dToReturn);
         }

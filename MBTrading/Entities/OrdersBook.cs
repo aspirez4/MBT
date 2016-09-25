@@ -8,40 +8,56 @@ namespace MBTrading.Entities
 {
     public static class OrdersBook
     {
-        public static ConcurrentDictionary<string, Order> OpenOrders;
+        private static ConcurrentDictionary<string, Order> OpenOrders;
 
         static OrdersBook()
         {
             OrdersBook.OpenOrders = new ConcurrentDictionary<string, Order>();
         }
 
-        public static bool AddNewBuyOrder(string strClientOrdID, string strSymbol, int nWantedQuantity, string strStopLossReferencePropName, int? nCandelIndexTTL)
+        public static Order Get(string key)
         {
-            Order oCurrOrder = new Order(strClientOrdID, strSymbol, nWantedQuantity, strStopLossReferencePropName, nCandelIndexTTL, true);
-            if (OrdersBook.OpenOrders.TryAdd(strClientOrdID, oCurrOrder))
+            return OrdersBook.OpenOrders[key];
+        }
+        public static bool TryGet(string key, out Order o)
+        {
+            return OrdersBook.OpenOrders.TryGetValue(key, out o);
+        }
+        public static bool Contains(string key)
+        {
+            return OrdersBook.OpenOrders.ContainsKey(key);
+        }
+        public static bool TryAdd(string key, Order o)
+        {
+            return OrdersBook.OpenOrders.TryAdd(key, o);
+        }
+        public static bool TryRemove(string key, out Order o)
+        {
+            return OrdersBook.OpenOrders.TryRemove(key,out o);
+        }
+        public static bool AddNewBuyOrder(Order o)
+        {
+            if (OrdersBook.OpenOrders.TryAdd(o.ClientOrdID, o))
             {
-                oCurrOrder.ParrentShare.BuyOrder = oCurrOrder;
+                o.ParrentShare.BuyOrder = o;
                 return (true);
             }
             return (false);
         }
-        public static bool AddNewClientStopLossOrder(string strClientOrdID, string strSymbol, int nWantedQuantity, string strStopLossReferencePropName)
+        public static bool AddNewClientStopLossOrder(Order o)
         {
-            Order oCurrOrder = new Order(strClientOrdID, strSymbol, nWantedQuantity, string.Empty, null, false);
-            bool bOrderBook = OrdersBook.OpenOrders.TryAdd(strClientOrdID, oCurrOrder);
-            bool bShareList = oCurrOrder.ParrentShare.StopLossOrders.TryAdd(strClientOrdID, oCurrOrder);
+            bool bOrderBook = OrdersBook.OpenOrders.TryAdd(o.ClientOrdID, o);
+            bool bShareList = o.ParrentShare.StopLossOrders.TryAdd(o.ClientOrdID, o);
             return ((bOrderBook) && (bShareList));
         }
-        public static bool AddNewServerStopLossOrder(string strOrderID, string strClientOrdID, string strSymbol, int nWantedQuantity)
+        public static bool AddNewServerStopLossOrder(string strOrderID, string strClientOrdID, string strSymbol, int nWantedQuantity, double dStopLoss)
         {
-            Order oCurrOrder = new Order(strClientOrdID, strSymbol, nWantedQuantity, string.Empty, null, false);
-            oCurrOrder.OrderID = strOrderID;
+            Order oCurrOrder = new Order(strSymbol, nWantedQuantity, null, null, dStopLoss, false, false, null);
+            oCurrOrder.Gateway_OrderID = strOrderID;
             bool bOrderBook = OrdersBook.OpenOrders.TryAdd(strOrderID, oCurrOrder);
             bool bShareList = oCurrOrder.ParrentShare.StopLossOrders.TryAdd(strOrderID, oCurrOrder);
             return ((bOrderBook) && (bShareList));
         }
-
-
         public static void RemoveBuyOrder(string strClientOrdID)
         {
             Order oOrderToRemove = null;

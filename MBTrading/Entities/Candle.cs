@@ -138,7 +138,7 @@ namespace MBTrading
                                  this.ExtraList[2],
                                  this.ExtraList[this.ExtraList.Count - 7],
                                  this.ExtraList[this.ExtraList.Count - 6],
-                                 this.ExtraList[this.ExtraList.Count - 5],
+                                 this.ExtraList[this.ExtraList.Count - this.ExtraList.Count],
                                  sParentShare.OffLineCandleIndex));
             }
             catch { }

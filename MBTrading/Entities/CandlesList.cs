@@ -67,14 +67,14 @@ namespace MBTrading
             TDI             = new TDI();
             ZigZag5         = new ZigZag(5, false);
             ZigZag12        = new ZigZag(12, true);
-            ATR             = new ATR(12, 3.5);
+            ATR             = new ATR(12, 2.5);
             RSI.RegisterIndicator(this);
             SMA.RegisterIndicator(this);
             EMA.RegisterIndicator(this);
             WMA.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
 //          ZigZag5.RegisterIndicator(this);
-//          ZigZag12.RegisterIndicator(this);
+            ZigZag12.RegisterIndicator(this);
             ATR.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 
@@ -82,6 +82,7 @@ namespace MBTrading
             this.IndicatorsList.ForEach(I => I.CompleteInitializationActions());
             for (int nChankCounter = 0; nChankCounter < Consts.NEURAL_NETWORK_CHANK_SIZE; nChankCounter++) this.NeuralNetworkRawData.Add(1);
         }
+
         public bool AddOrUpdatePrice(MarketData mdCurrMarketData)
         {
             // Updating the HighestPrice and LowestPrice to be The LastCandle's prices if justified

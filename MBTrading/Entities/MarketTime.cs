@@ -3,36 +3,38 @@ namespace MBTrading
 {
     public class MarketTime
     {
-        public int Hour;
-        public int MinutePrimary;
+        public int HourPrimery;
+        public int HourSecondery;
+        public int MinutePrimery;
         public int MinuteSecondary;
         public int OigMinute;
 
         // Ctor
         public MarketTime(int nHour, int nMinute)
         {
-            this.Hour = (int)((int)((nHour * 60) / (Consts.MINUTE_CANDLES_PRIMARY)) * (Consts.MINUTE_CANDLES_PRIMARY / 60.0));
-            this.MinutePrimary = (nMinute / Consts.MINUTE_CANDLES_PRIMARY) * Consts.MINUTE_CANDLES_PRIMARY;
+            this.HourPrimery = (int)((int)((nHour * 60) / (Consts.MINUTE_CANDLES_PRIMARY)) * (Consts.MINUTE_CANDLES_PRIMARY / 60.0));
+            this.HourSecondery = (int)((int)((nHour * 60) / (Consts.MINUTE_CANDLES_SECONDARY)) * (Consts.MINUTE_CANDLES_SECONDARY / 60.0));
+            this.MinutePrimery = (nMinute / Consts.MINUTE_CANDLES_PRIMARY) * Consts.MINUTE_CANDLES_PRIMARY;
             this.MinuteSecondary = (nMinute / Consts.MINUTE_CANDLES_SECONDARY) * Consts.MINUTE_CANDLES_SECONDARY;
             this.OigMinute = nMinute;
         }
         
         public override string ToString()
         {
-            return (string.Format("{0}:{1}", this.Hour.ToString("D2"), this.MinuteSecondary.ToString("D2")));
+            return (string.Format("{0}:{1}", this.HourPrimery.ToString("D2"), this.MinuteSecondary.ToString("D2")));
         }
  
         public int Delta(MarketTime mt1)
         {
             int nMinutes = 0;
 
-            if (this.Hour >= mt1.Hour)
+            if (this.HourPrimery >= mt1.HourPrimery)
             {
-                nMinutes = ((this.Hour - mt1.Hour) * 60) + (this.OigMinute - mt1.OigMinute);
+                nMinutes = ((this.HourPrimery - mt1.HourPrimery) * 60) + (this.OigMinute - mt1.OigMinute);
             }
             else
             {
-                nMinutes = ((23 - this.Hour + mt1.Hour) * 60) + (60 - this.OigMinute + mt1.OigMinute);
+                nMinutes = ((23 - this.HourPrimery + mt1.HourPrimery) * 60) + (60 - this.OigMinute + mt1.OigMinute);
             }
 
             return (nMinutes);
@@ -43,11 +45,11 @@ namespace MBTrading
         {
             if (bPrimary)
             {
-                return ((this.MinutePrimary == m2.MinutePrimary) && (this.Hour == m2.Hour));
+                return ((this.MinutePrimery == m2.MinutePrimery) && (this.HourPrimery == m2.HourPrimery));
             }
             else
             {
-                return ((this.MinuteSecondary == m2.MinuteSecondary) && (this.Hour == m2.Hour));
+                return ((this.MinuteSecondary == m2.MinuteSecondary) && (this.HourPrimery == m2.HourPrimery));
             }
         }
     }

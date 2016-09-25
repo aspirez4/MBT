@@ -31,16 +31,16 @@ namespace MBTrading
             new Thread(PushServer.StartListening).Start();
 
 
-            // Initialize the ExchangeActivity Check and Garbage-Collector work
+            // Initialize the ExchangeActivity Check and Garbage-Collector worker
             new Thread(ManageProgram).Start();
 
 
-            // Initialize the ExchangeActivity Check and Garbage-Collector work
+            // Initialize the IncDayNum worker
             new Thread(IncDayNum).Start();
 
 
             // Connect to MBT Fix Gateway
-            if (!Consts.WorkOffLineMode) { new Thread(FixGatewayUtils.ESTRollover).Start(); }
+            if (!Consts.WorkOffLineMode) { new Thread(FixGatewayUtils.GatewayStart).Start(); }
 
 
             // Initialize Shares 

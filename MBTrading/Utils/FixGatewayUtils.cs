@@ -14,8 +14,6 @@ namespace MBTrading
         // Static Data Members        
         public  static Thread                                   MBTradingListenerLoopThread     = null;
         public  static Thread                                   MBTradingHeartBeatThread        = null;
-        public  static Thread                                   MBTradingESTRolloverThread      = null;
-        public  static Thread                                   MBTradingSequenceResetThread    = null;
         private static TcpClient                                tcpClient                       = null;
         private static NetworkStream                            networkStream                   = null;                     // TODO: SSL_STREAM
         private static string                                   SessionToken                    = string.Empty;
@@ -29,6 +27,8 @@ namespace MBTrading
         private static long                                     _lockFlag                   = 0;
         private static long                                     _T_Flag                     = 1;
         private static long                                     _F_Flag                     = 0;
+        private static long                                     SDKId                       = 2982475;
+        private static string                                   TimeInForce                 = "0"; // "G";
         private static string                                   Message                     = "8=FIX.4.49={0}{1}";      // 9    : body{1}{2} Length
                                                                                                                         // {1}  : Body - RequiredValues + body
         private static string                                   RequiredValues = "35={0}49={1}56={2}34={3}52={4}";      // 35   : MsgType
@@ -40,9 +40,9 @@ namespace MBTrading
 
         static FixGatewayUtils()
         {
-            FixGatewayUtils.Sequence = new SafeInteger(0);
-            FixGatewayUtils.LastGatewaySequence = 0;
+            FixGatewayUtils.RequiredValues = "35={0}49=" + Consts.FisGW_SenderCompID + "56=" + Consts.FixGW_TargetCompID + "34={1}52={2}";
             FixGatewayUtils.MessageHistoryList = new ConcurrentDictionary<int, string>();
+            FixGatewayUtils.CleanSequence();
         }
 
         // Static Methods - Quote API
@@ -83,31 +83,74 @@ namespace MBTrading
                 return (false);
             }
         }
-        public static void LogOnMBTFixGateway(bool bResetSequenceFlag, bool bResetSequence)
+        public static void CheckIfConnectionError(Exception e)
+        {
+            if ((e.Message.Contains("Didn't received Gateway HB")) ||
+                (e.Message.Contains("An established connection was aborted by the software in your host machine")) ||
+                (e.Message.Contains("No connection could be made because the target machine actively refused it")) ||
+                (e.Message.Contains("An existing connection was forcibly closed by the remote host")) ||
+                (e.Message.Contains("Cannot access a disposed object")) ||
+                (e.Message.Contains("A connection attempt failed because the connected party did not properly respond after a period of time")))
+            {
+                FixGatewayUtils.LogonIndicator = false;
+
+                // DebugPrint
+                Loger.Sequence(FixGatewayUtils.OperationalTime.ToString() + e.Message);
+
+                if (FixGatewayUtils.OperationalTime)
+                {
+                    // Sends ConnectionError mail and try to Reconnect
+                    Mail.SendMBTreadingMail("ConnectionError");
+                    new Thread(FixGatewayUtils.LogOnMBTFixGateway).Start();
+                }
+            }
+        }
+        public static void CleanSequence()
+        {
+            // Initiate all Sequence companents
+            FixGatewayUtils.Sequence = new SafeInteger(1);
+            FixGatewayUtils.LastGatewaySequence = 1;
+            FixGatewayUtils.MessageHistoryList.Clear();
+        }
+        public static bool Send(string strSequence, string strMessageFormated)
+        {
+            try
+            {
+                // Send request
+                byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
+                networkStream.Write(loginStream, 0, loginStream.Length);
+                Loger.Messages(strMessageFormated);
+                networkStream.Flush();
+            }
+            catch (Exception e)
+            {
+                Loger.ErrorLog(e);
+                FixGatewayUtils.CheckIfConnectionError(e);
+                return (false);
+            }
+            finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+            return (true);
+        }
+
+
+        public static void LogOnMBTFixGateway()
         {
             // If there is no other thread preforming this method
             if ((Interlocked.CompareExchange(ref _lockFlag, _T_Flag, _F_Flag) == _F_Flag) &&  (!FixGatewayUtils.LogonIndicator))
             {
                 // DebugPrint
-                Loger.Sequence("ON  - " + bResetSequenceFlag.ToString());
+                Loger.Sequence("ON");
 
                 // Try to connect TCP Level
                 FixGatewayUtils.DisConnectFixGatewayTCP();
                 while (!FixGatewayUtils.ConnectFixGatewayTCP()) { Thread.Sleep(90000); FixGatewayUtils.DisConnectFixGatewayTCP(); }
 
                 // Initialize the MBTFixGateway connection string
-                string strResetSequenceTag = string.Empty;
-                if ((bResetSequenceFlag) || (FixGatewayUtils.SystemProblem))
-                {                   
-                    strResetSequenceTag = "141=Y";
-                }
-                if ((bResetSequence) || (FixGatewayUtils.SystemProblem))
-                {
-                    FixGatewayUtils.CleanSequence();
-                }
+                FixGatewayUtils.CleanSequence();
+                
                 string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strRequiredValuesFormated = string.Format(RequiredValues, 'A', Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss"));
-                string strLogonStringFormated = string.Format("98=0{0}108=0347=554_H1554={1}", strResetSequenceTag, Consts.FixGW_Pass);
+                string strRequiredValuesFormated = string.Format(RequiredValues, 'A', strSequence, DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss"));
+                string strLogonStringFormated = string.Format("98=0554={0}10026=Y10906={1}", Consts.FixGW_Pass, FixGatewayUtils.SDKId);
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strLogonStringFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
                 strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
@@ -122,10 +165,7 @@ namespace MBTrading
                 }
                 catch (Exception e)
                 {
-                    if (bResetSequence)
-                    {
-                        FixGatewayUtils.CleanSequence();
-                    }
+                    FixGatewayUtils.CleanSequence();
                     Loger.ErrorLog(e);
                 }
                 finally 
@@ -136,7 +176,7 @@ namespace MBTrading
                     Thread.Sleep(90000);
                     Interlocked.Decrement(ref _lockFlag);
                     if ((!FixGatewayUtils.LogonIndicator) && (!FixGatewayUtils.OperationalTime))
-                        FixGatewayUtils.LogOnMBTFixGateway(bResetSequenceFlag,bResetSequence);
+                        FixGatewayUtils.LogOnMBTFixGateway();
                 }
             }
         }
@@ -148,7 +188,7 @@ namespace MBTrading
 
             // Initialize the logout MBTFixGateway string         
             string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-            string strBodyStringFormated = string.Format(RequiredValues, '5', Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss"));
+            string strBodyStringFormated = string.Format(RequiredValues, '5', strSequence, DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss"));
             string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
             strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
@@ -169,41 +209,15 @@ namespace MBTrading
             }
             finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
         }
-        public static void CleanSequence()
+        public static void Subscribe()
         {
-            // Initiate all Sequence companents
-            FixGatewayUtils.Sequence = new SafeInteger(0);
-            FixGatewayUtils.LastGatewaySequence = 0;
-            FixGatewayUtils.MessageHistoryList.Clear();
-        }
-        public static void CheckIfConnectionError(Exception e)
-        {
-            if ((e.Message.Contains("Didn't received Gateway HB")) ||
-                (e.Message.Contains("An established connection was aborted by the software in your host machine")) || 
-                (e.Message.Contains("No connection could be made because the target machine actively refused it")) ||
-                (e.Message.Contains("An existing connection was forcibly closed by the remote host")) ||
-                (e.Message.Contains("Cannot access a disposed object")) ||
-                (e.Message.Contains("A connection attempt failed because the connected party did not properly respond after a period of time")))
-            {
-                FixGatewayUtils.LogonIndicator = false;
 
-                // DebugPrint
-                Loger.Sequence(FixGatewayUtils.OperationalTime.ToString() + e.Message);
-
-                if (FixGatewayUtils.OperationalTime)
-                {
-                    // Sends ConnectionError mail and try to Reconnect
-                    Mail.SendMBTreadingMail("ConnectionError");
-                    new Thread(() => FixGatewayUtils.LogOnMBTFixGateway(false, false)).Start();
-                }
-            }
         }
+
         
-        public static void ESTRollover()
+        public static void GatewayStart()
         {
-            // Initiailzing Rollover and ListenerLoop Threads
-            FixGatewayUtils.MBTradingESTRolloverThread = Thread.CurrentThread;
-            FixGatewayUtils.MBTradingESTRolloverThread.Priority = ThreadPriority.Highest;
+            // Initiailzing ListenerLoop Threads
             FixGatewayUtils.MBTradingListenerLoopThread = new Thread(FixGatewayUtils.ListenerLoop);
             FixGatewayUtils.MBTradingListenerLoopThread.Start();
             Thread.Sleep(10000);
@@ -215,107 +229,21 @@ namespace MBTrading
             FixGatewayUtils.MBTradingHeartBeatThread = new Thread(FixGatewayUtils.HeartBeatLoop);
             FixGatewayUtils.MBTradingHeartBeatThread.Priority = ThreadPriority.Highest;
             FixGatewayUtils.MBTradingHeartBeatThread.Start();
-            FixGatewayUtils.LogOnMBTFixGateway(true, true);
-
-            // If SequenceReset and Rollover are in diffarent time - Initializing also SequenceReset Thread
-            if (Consts.SequenceResetTime != Consts.RolloverTime)
-            {
-                FixGatewayUtils.MBTradingSequenceResetThread = new Thread(FixGatewayUtils.SEQRollover);
-                FixGatewayUtils.MBTradingSequenceResetThread.Priority = ThreadPriority.Highest;
-                FixGatewayUtils.MBTradingSequenceResetThread.Start();
-            }
-
-            // Wait for the first Rollover
-            TimeSpan tToWait = Time.ESTToWait(Consts.RolloverTime - 1, 59);
-            Thread.Sleep(tToWait);
-
-            while (Program.IsProgramAlive)
-            {
-                // Logout 
-                // DebugPrint
-                Loger.Sequence("EST OFF");
-                Consts.LoadConsts();
-                foreach (Share sCurrShare in Program.SharesList.Values) { sCurrShare.UpdateShareConsts(); }
-                FixGatewayUtils.OperationalTime = false;
-                FixGatewayUtils.LogOutMBTFixGateway();
-
-                // If today is Friday - Wait till sunday to logon again
-                if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
-                {
-                    tToWait = Time.ESTToWait(Consts.RolloverTime, 6);
-                    tToWait = tToWait.Add(new TimeSpan(2, 0, 0, 0));
-                    Thread.Sleep(tToWait);
-                }
-                else
-                {
-                    Thread.Sleep(420000);
-                }
-
-                // Logon
-                Loger.Sequence("EST ON");
-                FixGatewayUtils.LogOnMBTFixGateway(true, true);
-                Thread.Sleep(10000);
-
-                // Wait for Rollover time
-                tToWait = Time.ESTToWait(Consts.RolloverTime - 1, 59);
-                Thread.Sleep(tToWait);
-            }
+            FixGatewayUtils.LogOnMBTFixGateway();
         }
-        public static void SEQRollover()
-        {
-            // Wait for the first SequenceRollover
-            TimeSpan tToWait = Time.ESTToWait(Consts.SequenceResetTime - 1, 59);
-            Thread.Sleep(tToWait);
-
-            while ((Time.EST.DayOfWeek == DayOfWeek.Friday) || (Time.EST.DayOfWeek == DayOfWeek.Saturday)) { Thread.Sleep(Time.ESTToWait(Consts.SequenceResetTime - 1, 59)); }  
-
-            while (Program.IsProgramAlive)
-            {
-                // Logout 
-                Loger.Sequence("SEQ OFF");
-                FixGatewayUtils.OperationalTime = false;
-                FixGatewayUtils.LogOutMBTFixGateway();
-
-                Thread.Sleep(Time.ESTToWait(Consts.SequenceResetTime, 2));
-
-                // Logon
-                Loger.Sequence("SEQ ON");
-                FixGatewayUtils.LogOnMBTFixGateway(true, true);
-                Thread.Sleep(10000);
-
-                tToWait = Time.ESTToWait(Consts.SequenceResetTime - 1, 59);
-                Thread.Sleep(tToWait);
-                while ((Time.EST.DayOfWeek == DayOfWeek.Friday) || 
-                       (Time.EST.DayOfWeek == DayOfWeek.Saturday)) 
-                {
-                    Thread.Sleep(Time.ESTToWait(Consts.SequenceResetTime - 1, 59)); 
-                }  
-            }
-        }
+    
         public static void SendHeartbeat(string strTestReqID)
         {
             string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
             string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "0", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
+            string strRequiredValuesFormated = string.Format(RequiredValues, "0", strSequence, strDateTimeUTC);
             string strNewRequestFormated = strTestReqID == null ? string.Empty : string.Format("112={0}", strTestReqID);
             string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewRequestFormated);
             string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
             strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
-            
-            try
-            {
-                // Send request
-                byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
-                networkStream.Flush();
-            }
-            catch (Exception e)
-            {
-                Loger.ErrorLog(e);
-                FixGatewayUtils.CheckIfConnectionError(e);
-            }
-            finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+
+            // Send request
+            FixGatewayUtils.Send(strSequence, strMessageFormated);
         }
         public static void SequenceReset(bool bGapFillMode, int nGapStartSequence, int nNextGapSequence)
         {
@@ -337,7 +265,7 @@ namespace MBTrading
             }
 
             string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "4", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strMessageHeaderSequence, strDateTimeUTC);
+            string strRequiredValuesFormated = string.Format(RequiredValues, "4", strMessageHeaderSequence, strDateTimeUTC);
             string strNewRequestFormated = string.Format("123={0}36={1}", cGapFillMode, nNextSequence);
             string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewRequestFormated);
             string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
@@ -364,153 +292,70 @@ namespace MBTrading
         {
             string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
             string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "2", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
+            string strRequiredValuesFormated = string.Format(RequiredValues, "2", strSequence, strDateTimeUTC);
             string strNewRequestFormated = string.Format("7={0}16={1}", nBeginSeqNo, nEndSeqNo);
             string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewRequestFormated);
             string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
             strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
-            try
-            {
-                // Send request
-                byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
-                networkStream.Flush();
-            }
-            catch (Exception e)
-            {
-                Loger.ErrorLog(e);
-            }
-            finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+            // Send request
+            FixGatewayUtils.Send(strSequence, strMessageFormated);
         }
-        public static void BuyLimitPlusStopMarket(string strSymbol, double dLimit, double dStop, int nQuantity)
-        {
-            string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-            string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-            string strNewOrderFormated = string.Format("1={0}11={1}18=s21={2}38={3}40={4}44={5}47={6}54={7}55={8}59={9}60={10}99={11}100={12}529=1553={13}", Consts.Account_No, strSequence + strDateTimeUTC, 1, nQuantity, 2, dLimit, 'I', 1, strSymbol, 1, strDateTimeUTC, dStop, "MBTX", Consts.Account_UserName);
-            string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
-            string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
-            strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
-            
-            try
-            {
-                // Send request
-                byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
-                networkStream.Flush();
-            }
-            catch (Exception e)
-            {
-                Loger.ErrorLog(e);
-            }
-            finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
-        }
-        public static bool BuyStopLimitPlusTrailing(string strSymbol, double dLimit, double dStop, double dTrailingInterval, int nQuantity, string strStopLossReferencePropName, int? nCandelIndexTTL, string strBuyCouse)
+        public static bool Buy(Order o)
         {
             if (FixGatewayUtils.LogonIndicator)
             {
-                string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strClientOrdID = string.Format("{0}{1}", strSequence, strDateTimeUTC);
-                string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-                string strNewOrderFormated = string.Format("1={0}11={1}18=p21={2}38={3}40={4}44={5}47={6}54={7}55={8}59={9}60={10}99={11}211={12}100={13}529=1553={14}", Consts.Account_No, strClientOrdID, 1, nQuantity, 4, dLimit, 'I', 1, strSymbol, 1, strDateTimeUTC, dStop, dTrailingInterval, "MBTX", Consts.Account_UserName);
+                string strRequiredValuesFormated = string.Format(RequiredValues, "D", o.Sequence, o.DateTimeUTC);
+                string strNewOrderFormated = string.Empty;
+
+                // Means the order is StopLimit order, and if theres also StopLoss defined, it needs to be treet in Separete order
+                if (o.Stop != null)
+                {
+                    strNewOrderFormated = string.Format("1={0}11={1}38={2}40=444={3}47=I54={4}55={5}59={6}60={7}76={8}99={9}529=1",
+                        Consts.Account_No, o.ClientOrdID, o.OrderWantedQuantity, o.Limit, o.IsLong ? "1" : "5114=Y", o.Symbol, TimeInForce, o.DateTimeUTC, "MBTX", o.Stop);
+                }
+                else
+                {
+                    strNewOrderFormated = string.Format("1={0}11={1}18=s38={2}40=244={3}47=I54={4}55={5}59={6}60={7}76={8}99={9}529=1",
+                        Consts.Account_No, o.ClientOrdID, o.OrderWantedQuantity, o.Limit, o.IsLong ? "1" : "5114=Y", o.Symbol, TimeInForce, o.DateTimeUTC, "MBTX", o.StopLoss);
+                }
+                
+                
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
                 strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
-                try
-                {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = false;
-                    Loger.ErrorLog(e);
-                    return (false);
-                }
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+                // Send request
+                if (!FixGatewayUtils.Send(o.Sequence, strMessageFormated))
+                    return false;
 
-                Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = true;
-                OrdersBook.AddNewBuyOrder(strClientOrdID, strSymbol, nQuantity, strStopLossReferencePropName, nCandelIndexTTL);
+
+                if (o.IsBuy)
+                {
+                    OrdersBook.AddNewBuyOrder(o);
+                }
+                else
+                {
+                    OrdersBook.AddNewClientStopLossOrder(o);
+                }
+
                 return (true);
             }
 
-            Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = false;
-            Loger.ExecutionReport(strSymbol, null, true, "BuyStopLimitPlusTrailing - LogonIndicator == False");
-            return (false);
-        }
-        public static bool BuyStopLimit(string strSymbol, double dLimit, double dStop, int nQuantity, string strStopLossReferencePropName, int? nCandelIndexTTL, string strBuyCouse)
-        {
-            if (FixGatewayUtils.LogonIndicator)
-            {
-                string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strClientOrdID = string.Format("{0}{1}", strSequence, strDateTimeUTC);
-                string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-                string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}44={5}47={6}54={7}55={8}59={9}60={10}99={11}100={12}553={13}", Consts.Account_No, strClientOrdID, 1, nQuantity, 4, dLimit, 'I', 1, strSymbol, 1, strDateTimeUTC, dStop, "MBTX", Consts.Account_UserName);
-                string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
-                string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
-                strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
-
-                try
-                {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.ExecutionReport(strSymbol, null, true, string.Format("BuyStopLimit - Cid:{0}      TriggeredBy: {1}", strClientOrdID, strBuyCouse));
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Loger.ExecutionReport(strSymbol, null, true, "BuyStopLimit - Exception");
-                    Loger.ErrorLog(e);
-                    Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = false;
-                    return (false);
-                }
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
-
-                Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = true;
-                OrdersBook.AddNewBuyOrder(strClientOrdID, strSymbol, nQuantity, strStopLossReferencePropName, nCandelIndexTTL);
-                return (true);
-            }
-
-            Program.SharesList[strSymbol].IsBuyOrderSentOrExecuted = false;
-            Loger.ExecutionReport(strSymbol, null, true, "BuyStopLimit - LogonIndicator == False");
             return (false);
         }
         public static bool SellLimit(string strSymbol, double dLimit, int nQuantity)
         {         
             string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
             string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
+            string strRequiredValuesFormated = string.Format(RequiredValues, "D", strSequence, strDateTimeUTC);
             string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}44={5}47={6}54={7}55={8}59={9}60={10}100={11}553={12}", Consts.Account_No, strSequence + strDateTimeUTC, 1, nQuantity, 2, dLimit, 'I', 2, strSymbol, 1, strDateTimeUTC, "MBTX", Consts.Account_UserName);
             string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
             string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
             strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
-            try
-            {
-                // Send request
-                byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
-                networkStream.Flush();
-                return (true);
-            }
-            catch (Exception e)
-            {
-                Loger.ErrorLog(e);
-                return (false);
-            }
-            finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+            // Send request
+            return (FixGatewayUtils.Send(strSequence, strMessageFormated));
         }
         public static bool SellMarket(string strSymbol, int nQuantity)
         {
@@ -518,145 +363,75 @@ namespace MBTrading
             {
                 string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
                 string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
+                string strRequiredValuesFormated = string.Format(RequiredValues, "D", strSequence, strDateTimeUTC);
                 string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}47={5}54={6}55={7}59={8}60={9}100={10}553={11}", Consts.Account_No, strSequence + strDateTimeUTC, 1, nQuantity, 1, 'I', 2, strSymbol, 1, strDateTimeUTC, "MBTX", Consts.Account_UserName);
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
                 strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
-                try
-                {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Loger.ErrorLog(e);
-                    return (false);
-                }
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
-
-                return (true);
+                // Send request
+                return (FixGatewayUtils.Send(strSequence, strMessageFormated));
             }
 
             return (false);
         }
-        public static bool CancelOrder(string strSymbol, string strCIOrdID, bool bIsBuyOrder)
+        public static bool CancelOrder(Order o)
         {
             if (FixGatewayUtils.LogonIndicator)
             {
-                int nSide = (bIsBuyOrder ? 1 : 2);
+                char cSide = o.IsBuy ? (o.IsLong ? '1' : '5') : '2';
                 string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
                 string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strRequiredValuesFormated = string.Format(RequiredValues, "F", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-                string strNewOrderFormated = string.Format("1={0}11={1}41={2}54={3}55={4}59=160={5}553={6}", Consts.Account_No, strSequence + strDateTimeUTC, strCIOrdID, nSide, strSymbol, strDateTimeUTC, Consts.Account_UserName);
-                string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
-                string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
-                strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
+                string strClientOrdID = string.Format("{0}{1}", strSequence, strDateTimeUTC);
+                string strRequiredValuesFormated = string.Format(RequiredValues, "F", strSequence, strDateTimeUTC);
 
-                try
-                {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Loger.ErrorLog(e);
-                    return (false);
-                }
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
-                return (true);
-            }
-            
-            return (false);
-        }
-        public static bool UpdateStopLossOrder(string strSymbol, string strCIOrdID, double dStop, int nQuantity)
-        {
-            if (FixGatewayUtils.LogonIndicator)
-            {
-                string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strRequiredValuesFormated = string.Format(RequiredValues, "G", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-                string strRequestFormated = string.Format("1={0}11={1}21=138={2}99={3}40=341={4}54=255={5}59={6}60={7}553={8}", Consts.Account_No, strSequence + strDateTimeUTC, nQuantity, dStop, strCIOrdID, strSymbol, 1, strDateTimeUTC, Consts.Account_UserName);
+                string strRequestFormated = string.Format("1={0}11={1}37={2}38={3}10017={4}54={5}55={6}60={7}",
+                    Consts.Account_No, strClientOrdID, o.Gateway_OrderID, o.OrderWantedQuantity, o.Gateway_OrderID, cSide, o.Symbol, strDateTimeUTC);
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strRequestFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
                 strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
-                try
-                {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.ExecutionReport(strSymbol, null, false, string.Format("UpdateStopLossOrder - Cid:{0}", strCIOrdID));
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Loger.ExecutionReport(strSymbol, null, false, "UpdateStopLossOrder - Exception");
-                    Loger.ErrorLog(e);
-                    return (false);
-                }
-            
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
-                return (true);
+                // Send request
+                return (FixGatewayUtils.Send(strSequence, strMessageFormated));
             }
 
-            Loger.ExecutionReport(strSymbol, null, false, "UpdateStopLossOrder - LogonIndicator == False");
             return (false);
         }
-        public static bool NewStopLossOrder(string strSymbol, double dStop, int nQuantity, out string strClientStopLossOrdID)
+        public static bool UpdateStopLossOrder(Order o, int nNewQuantity, double dNewPrice)
         {
-            if (FixGatewayUtils.LogonIndicator)
+            if (!o.IsBuy)
             {
-                string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strClientOrdID = string.Format("{0}{1}", strSequence, strDateTimeUTC);
-                strClientStopLossOrdID = strClientOrdID;
-                string strRequiredValuesFormated = string.Format(RequiredValues, "D", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
-                string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}47={5}54={6}55={7}59={8}60={9}99={10}100={11}553={12}", Consts.Account_No, strClientOrdID, 1, nQuantity, 3, 'I', 2, strSymbol, 1, strDateTimeUTC, dStop, "MBTX", Consts.Account_UserName);
-                string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
-                string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
-                strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
-                
-                try
+                if (FixGatewayUtils.LogonIndicator)
                 {
-                    // Send request
-                    byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
-                    networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.ExecutionReport(strSymbol, null, false, string.Format("NewStopLossOrder - Cid:{0}", strClientOrdID));
-                    Loger.Messages(strMessageFormated);
-                    networkStream.Flush();
-                }
-                catch (Exception e)
-                {
-                    Loger.ExecutionReport(strSymbol, null, false, "NewStopLossOrder - Exception");
-                    Loger.ErrorLog(e);
-                    return (false);
-                }
-                finally { FixGatewayUtils.AddToHistoryLog(strSequence, strMessageFormated); }
+                    string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
+                    string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
+                    string strClientOrdID = string.Format("{0}{1}", strSequence, strDateTimeUTC);
+                    string strRequiredValuesFormated = string.Format(RequiredValues, "G", strSequence, strDateTimeUTC);
 
-                OrdersBook.AddNewClientStopLossOrder(strClientOrdID, strSymbol, nQuantity, string.Empty);
-                return (true);
+                    string strRequestFormated = string.Format("1={0}11={1}37={2}38={3}10017={4}40={5}44={6}54={7}55={8}59={9}60={10}76={11}",
+                        Consts.Account_No, strClientOrdID, o.Gateway_OrderID, nNewQuantity, o.Gateway_OrderID, '3', dNewPrice, '2', o.Symbol, TimeInForce, strDateTimeUTC, "MBTX");
+                    string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strRequestFormated);
+                    string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
+                    strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
+
+                    // Send request
+                    return (FixGatewayUtils.Send(strSequence, strMessageFormated));
+                }
+
+                Loger.ExecutionReport(o.Symbol, null, false, "UpdateStopLossOrder - LogonIndicator == False");
             }
 
-            Loger.ExecutionReport(strSymbol, null, false, "NewStopLossOrder - LogonIndicator == False");
-            strClientStopLossOrdID = string.Empty;
             return (false);
         }
+      
+
         public static bool RequestForPositions()
         {
             if (FixGatewayUtils.LogonIndicator)
             {
                 string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
                 string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strRequiredValuesFormated = string.Format(RequiredValues, "AN", Consts.FixGW_SenderCompID, Consts.FixGW_TargetCompID, strSequence, strDateTimeUTC);
+                string strRequiredValuesFormated = string.Format(RequiredValues, "AN", strSequence, strDateTimeUTC);
                 string strNewOrderFormated = string.Format("1={0}710={1}724={2}", Consts.Account_No, strSequence + strDateTimeUTC, 0);
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
@@ -730,7 +505,7 @@ namespace MBTrading
                 strSum += '0';
             }
             strSum += bBytesSum.ToString();
-            return (string.Format("{0}{1}", strMessage, strSum));
+            return (string.Format("{0}{1}\n", strMessage, strSum));
         }
 
         public static byte[] ConCut(byte[] arr, int nEOA)
@@ -911,14 +686,14 @@ namespace MBTrading
                                             Share sCurrShare = Program.SharesList[dicCurrDic[55]];
 
                                             // Buy Report
-                                            if (dicCurrDic[54].Equals("1"))
+                                            if (dicCurrDic[54].Equals("1") || dicCurrDic[54].Equals("5"))
                                             {
                                                 Order oCurrBuyOrder = null;
 
                                                 // Order Canceld Report
                                                 if (dicCurrDic[150].Equals("4"))
                                                 {
-                                                    OrdersBook.OpenOrders.TryGetValue(dicCurrDic[41], out oCurrBuyOrder);
+                                                    OrdersBook.TryGet(dicCurrDic[41], out oCurrBuyOrder);
 
                                                     if (oCurrBuyOrder != null)
                                                     {
@@ -934,7 +709,7 @@ namespace MBTrading
                                                 // If not rejected 
                                                 else if (dicCurrDic[150] != "8")
                                                 {
-                                                    OrdersBook.OpenOrders.TryGetValue(dicCurrDic[11], out oCurrBuyOrder);
+                                                    OrdersBook.TryGet(dicCurrDic[11], out oCurrBuyOrder);
 
                                                     if (oCurrBuyOrder != null)
                                                     {
@@ -969,7 +744,7 @@ namespace MBTrading
                                                     Order oCurrStopLossOrder = null;
 
                                                     // if (sCurrShare.StopLossOrders.Count > 0)
-                                                    if (OrdersBook.OpenOrders.TryGetValue(dicCurrDic[37], out oCurrStopLossOrder))
+                                                    if (OrdersBook.TryGet(dicCurrDic[37], out oCurrStopLossOrder))
                                                     {
                                                         int nOrderQuantityFilled = int.Parse(dicCurrDic[14]);
                                                         double dSoldPrice = double.Parse(dicCurrDic[6]);
@@ -1020,15 +795,15 @@ namespace MBTrading
                                                     Order oStopLossOrder = null;
 
                                                     // If its a known order
-                                                    if (OrdersBook.OpenOrders.ContainsKey(dicCurrDic[37]))
+                                                    if (OrdersBook.Contains(dicCurrDic[37]))
                                                     {
-                                                        oStopLossOrder = OrdersBook.OpenOrders[dicCurrDic[37]];
+                                                        oStopLossOrder = OrdersBook.Get(dicCurrDic[37]);
                                                     }
                                                     // If its the first response on a client order
-                                                    else if ((dicCurrDic.ContainsKey(11)) && (OrdersBook.OpenOrders.ContainsKey(dicCurrDic[11])))
+                                                    else if ((dicCurrDic.ContainsKey(11)) && (OrdersBook.Contains(dicCurrDic[11])))
                                                     {
-                                                        OrdersBook.OpenOrders.TryRemove(dicCurrDic[11], out oStopLossOrder);
-                                                        OrdersBook.OpenOrders.TryAdd(dicCurrDic[37], oStopLossOrder);
+                                                        OrdersBook.TryRemove(dicCurrDic[11], out oStopLossOrder);
+                                                        OrdersBook.TryAdd(dicCurrDic[37], oStopLossOrder);
                                                         oStopLossOrder.ParrentShare.StopLossOrders.TryRemove(dicCurrDic[11], out oStopLossOrder);
                                                         oStopLossOrder.ParrentShare.StopLossOrders.TryAdd(dicCurrDic[37], oStopLossOrder);
                                                     }
@@ -1037,7 +812,7 @@ namespace MBTrading
                                                     {
                                                         Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("Oid:{0} New Server StopLoss", dicCurrDic[37]));
                                                         OrdersBook.AddNewServerStopLossOrder(dicCurrDic[37], dicCurrDic[11], sCurrShare.Symbol, dicCurrDic.ContainsKey(38) ? int.Parse(dicCurrDic[38]) : -1);
-                                                        oStopLossOrder = OrdersBook.OpenOrders[dicCurrDic[37]];
+                                                        oStopLossOrder = OrdersBook.Get(dicCurrDic[37]);
                                                     }
 
                                                     // Update order
@@ -1048,7 +823,7 @@ namespace MBTrading
                                                 else
                                                 {
                                                     Order oCurrStopLossOrder = null;
-                                                    OrdersBook.OpenOrders.TryGetValue(dicCurrDic[37], out oCurrStopLossOrder);
+                                                    OrdersBook.TryGet(dicCurrDic[37], out oCurrStopLossOrder);
                                                     oCurrStopLossOrder.FGWResponse = OrderFGWResponse.Rejected;
                                                     Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("Oid:{0} Order Rejected", dicCurrDic[37]));
                                                     // TODO: מה לעשות עם פקודת המכירה או הסטופ נדחת?
@@ -1064,7 +839,7 @@ namespace MBTrading
                                             // If OrdStatus = Rejected
                                             if (dicCurrDic[39].Equals("8"))
                                             {
-                                                Order oRejectedOrder = OrdersBook.OpenOrders[dicCurrDic[41]];
+                                                Order oRejectedOrder = OrdersBook.Get(dicCurrDic[41]);
                                                 if (oRejectedOrder == null)
                                                 {
                                                     foreach (Share sCurrShare in Program.SharesList.Values)
@@ -1278,7 +1053,6 @@ namespace MBTrading
                         strValue.Clear();
 
                         /////////////// Running for the key /////////////////
-
                         nKey += arrMessage[nIndex] - 48;
                         nIndex++;
                         // While (arrMessage[nIndex] != '=')
@@ -1307,7 +1081,7 @@ namespace MBTrading
 
                         dic.Add(nKey, strValue.ToString());
 
-                        if (nKey == 10)
+                        if ((nKey == 10) || (arrMessage[nIndex - 1] == '\n'))
                         {
                             lstToRet.Add(dic);
                             dic = new Dictionary<int, string>();
@@ -1325,7 +1099,7 @@ namespace MBTrading
         }
 
 
-        public static double CalculateProfit(double dOpen, double dClose, string strSymbol, int nQuantity)
+        public static double CalculateProfit(double dOpen, double dClose, string strSymbol, int nQuantity, bool ask)
         {
             if (dOpen == 0)
             {
@@ -1344,13 +1118,13 @@ namespace MBTrading
                         {
                             if (strCurrSymbol.Equals(strSymbol + "/USD"))
                             {
-                                dQuoteToHomeCurrency = Program.SharesList[strCurrSymbol].CandlesList.CurrPrice;
+                                dQuoteToHomeCurrency = (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
 
                                 break;
                             }
                             else if (strCurrSymbol.Equals("USD/" + strSymbol))
                             {
-                                dQuoteToHomeCurrency = 1 / Program.SharesList[strCurrSymbol].CandlesList.CurrPrice;
+                                dQuoteToHomeCurrency = 1 / (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
 
                                 break;
                             }
@@ -1363,7 +1137,7 @@ namespace MBTrading
                 return ((dClose - dOpen) * dQuoteToHomeCurrency * nQuantity);
             }
         }
-        public static double CalculateRateToProfit(double dPL, double dOpen, string strSymbol, int nQuantity)
+        public static double CalculateRateToProfit(double dPL, double dOpen, string strSymbol, int nQuantity, bool ask)
         {
             strSymbol = strSymbol.Remove(0, 4);
             double dQuoteToHomeCurrency = 1;
@@ -1373,13 +1147,13 @@ namespace MBTrading
                 {
                     if (strCurrSymbol.Equals(strSymbol + "/USD"))
                     {
-                        dQuoteToHomeCurrency = Program.SharesList[strCurrSymbol].CandlesList.CurrPrice;
+                        dQuoteToHomeCurrency = (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
 
                         break;
                     }
                     else if (strCurrSymbol.Equals("USD/" + strSymbol))
                     {
-                        dQuoteToHomeCurrency = 1 / Program.SharesList[strCurrSymbol].CandlesList.CurrPrice;
+                        dQuoteToHomeCurrency = 1 / (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
 
                         break;
                     }
@@ -1391,7 +1165,7 @@ namespace MBTrading
 
             return ((dPL / (dQuoteToHomeCurrency * nQuantity)) + dOpen);
         }
-        public static double CalculateCommission(double dRate, string strSymbol, int nQuantity)
+        public static double CalculateCommission(double dRate, string strSymbol, int nQuantity, bool ask)
         {
             if (strSymbol.Contains("USD/"))
             {
@@ -1410,7 +1184,7 @@ namespace MBTrading
                     {
                         if (strCurrSymbol.Equals(strSymbol + "/USD"))
                         {
-                            return (nQuantity * Program.SharesList[strCurrSymbol].CandlesList.CurrPrice * 0.000025);
+                            return (nQuantity * (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid) * 0.000025);
                         }
                     }
                 }

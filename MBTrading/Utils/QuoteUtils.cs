@@ -40,6 +40,7 @@ namespace MBTrading
         }
 
 
+
         // Static Methods - Quote API
         public static   void ConnectMBTQuoteAPI()
         {
@@ -58,6 +59,7 @@ namespace MBTrading
                     strLines = QuoteUtils.ConCut(strLines, strLines.Length);
                     QuoteUtils.ParseQuotes(strLines);
 
+                    QuoteUtils.WaitForAllQueuesToBeEmpty();
                     NeuralNetwork.WaitForNeuralTraining();
                 }
 
@@ -90,6 +92,11 @@ namespace MBTrading
                     {
                         // Get MBQuateAPI connecting details
                         HttpWebRequest request = (HttpWebRequest)WebRequest.Create(string.Format("https://www.mbtrading.com/secure/getquoteserverxml.aspx?username={0}&password={1}", Consts.Web_UserName, Consts.Web_Password));
+                        ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls |
+                                                               SecurityProtocolType.Tls11 |
+                                                               SecurityProtocolType.Tls12 |
+                                                               SecurityProtocolType.Ssl3;
 
                         using (WebResponse response = request.GetResponse())
                         {
@@ -116,6 +123,18 @@ namespace MBTrading
                 }
             }
         }
+
+        private static void WaitForAllQueuesToBeEmpty()
+        {
+            foreach (Share curr in Program.SharesList.Values)
+            {
+                while (curr.PricesQueue.Count > 0)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+        }
+
         private static  void Logon()
         {
             QuoteUtils.LogonIndicator = false;

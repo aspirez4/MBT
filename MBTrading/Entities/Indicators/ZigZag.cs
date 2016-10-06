@@ -248,6 +248,9 @@ namespace MBTrading.Entities.Indicators
                             dLastHigh = HighMap[nShift];
                             ZigZagMap[nShift] = dLastHigh;
                             //ZigZagLowEvent(nShift, dLastHigh);
+                            dLast = dLastHigh;
+                            nLast = 1;
+                            shift = nShift;
                         }
 
                         if ((LowMap[nShift] != 0) && (LowMap[nShift] < dLastHigh) && (HighMap[nShift] == 0))
@@ -258,6 +261,9 @@ namespace MBTrading.Entities.Indicators
                             nWhatLookFor = 1;
                             this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
+                            dLast = dLastLow;
+                            nLast = 0;
+                            shift = nShift;
                         }
 
                         
@@ -274,6 +280,9 @@ namespace MBTrading.Entities.Indicators
                                 nWhatLookFor = -1;
                                 ZigZagMap[nShift] = dLastHigh;
                                 //ZigZagLowEvent(nShift, dLastHigh);
+                                dLast = dLastHigh;
+                                nLast = 1;
+                                shift = nShift;
                             }
 
                             if (LowMap[nShift] != 0)
@@ -283,7 +292,10 @@ namespace MBTrading.Entities.Indicators
                                 nWhatLookFor = 1;
                                 ZigZagMap[nShift] = dLastLow;
                                 this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
-                                //ZigZagLowEvent(nShift, dLastLow);
+                                ZigZagLowEvent(nShift, dLastLow);
+                                dLast = dLastLow;
+                                nLast = 0;
+                                shift = nShift;
                             }
                         }
                         break;
@@ -298,6 +310,9 @@ namespace MBTrading.Entities.Indicators
                             ZigZagMap[nShift] = dLastLow;
                             this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
+                            dLast = dLastLow;
+                            nLast = 0;
+                            shift = nShift;
                         }
 
                         if ((HighMap[nShift] != 0) && (HighMap[nShift] > dLastLow) && (LowMap[nShift] == 0))
@@ -307,6 +322,9 @@ namespace MBTrading.Entities.Indicators
                             ZigZagMap[nShift] = dLastHigh;
                             nWhatLookFor = -1;
                             //ZigZagLowEvent(nShift, dLastHigh);
+                            dLast = dLastHigh;
+                            nLast = 1;
+                            shift = nShift;
                         }
                         break;
                     }
@@ -335,43 +353,31 @@ namespace MBTrading.Entities.Indicators
             }
             #endregion
 
+ ///////////////////////////////////////           print(this.zzSourceList.Count - this.shift, this.dLast, this.nLast);
             this.nZigZagCalculationStartIndex = 0;
         }
 
+        private double dLast = 0;
+        private int nLast = 0;
+        private double dPrev = 0;
+        private int nPrev = 0;
+        private int shift = 0;
 
-
+        private void print(int nFromEnd, double val, int nDir)
+        {
+            if (val != dPrev)
+            {
+                File.AppendAllText(string.Format("C:\\Temp\\Or\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
+                    string.Format("{0};{1};{2};{3};{4}\n", 999, this.ParentCandleList.ParentShare.Symbol, nFromEnd, nDir, this.ParentCandleList.ParentShare.OffLineCandleIndex));
+                this.nPrev = nDir;
+                this.dPrev = val;
+            }
+        }
         public void BeforeNewCandleActions(Candle cNewCandle)
         {
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.ParentCandleList.ParentShare.Symbol.Remove(3, 1)),
                 string.Format("{0};{1};{2};{3}\n", this.nUserExtDepth ,this.ParentCandleList.ParentShare.Symbol, this.ZigZagMap[0], this.ParentCandleList.ParentShare.OffLineCandleIndex - this.Length + 1));
 
-            //// ZigZag NeuralNetwork
-            //if ((this.NNActivation) && (this.zzSourceList[0].CandleIndex > 0))
-            //{
-            //    if (this.ZigZagMap[0] != 0)
-            //    {
-            //        ZigZagData zd = new ZigZagData(this.ZigZagMap[0], ZigZagIndication.Low, this.zzSourceList[0].CandleIndex);
-
-            //        if (this.ZigZagMap[0] == this.LowMap[0])
-            //        {
-            //            this.LastLow = zd;
-            //        }
-            //        else
-            //        {
-            //            zd.Indication = ZigZagIndication.High;
-            //            this.LastHigh = zd;
-
-            //            if (this.LastLow != null)
-            //            {
-            //                this.ParentCandleList.NeuralNetworkZigZagData.Add(new ZigZagData((this.LastLow.Value + this.LastHigh.Value) / 2, 
-            //                                                                  ZigZagIndication.Mid, 
-            //                                                                  (this.LastLow.CandleIndex + this.LastHigh.CandleIndex) / 2));
-            //            }
-            //        }
-                    
-            //        this.ParentCandleList.NeuralNetworkZigZagData.Add(zd);
-            //    }
-            //}
 
             this.zzSourceList.RemoveAt(0);
             this.ZigZagMap.RemoveAt(0);

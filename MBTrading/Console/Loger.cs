@@ -23,9 +23,9 @@ namespace MBTrading
             try
             {
                 File.AppendAllText(string.Format("{0}\\ErrorLog.txt", Consts.FilesPath),
-                                   string.Format("{0}    - {1}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), sbExceptionBuilderException.ToString()));
-                File.AppendAllText(string.Format("{0}\\ErrorLogStackTrace.txt", Consts.FilesPath),
-                                   string.Format("{0}    - {1}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), sbExceptionBuilderStackTrace.ToString()));
+                                   string.Format("{0}    - {1}                    - {2}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 
+                                   sbExceptionBuilderException.ToString(), 
+                                   sbExceptionBuilderStackTrace.ToString()));
             }
             catch { }
         }
@@ -37,10 +37,10 @@ namespace MBTrading
                 {
                     File.AppendAllText(string.Format("{0}\\Ex_{1}.txt", Consts.FilesPath, strSymbol.Remove(3, 1)),
                                        string.Format("{0}       -         {1} Cid:{2}  Oid:{3} Prc:{4} Qun:{5}\r\n", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 
-                                                                                                                     oCurrOrder.Progress, 
+                                                                                                                     int.Parse(oCurrOrder.GatewayStatusResponse.ToString()), 
                                                                                                                      oCurrOrder.ClientOrdID, 
-                                                                                                                     oCurrOrder.OrderID, 
-                                                                                                                     bBuySide ? oCurrOrder.LimitPrice : oCurrOrder.StopLossPrice, 
+                                                                                                                     oCurrOrder.Gateway_OrderID, 
+                                                                                                                     bBuySide ? oCurrOrder.Limit : oCurrOrder.StopLoss, 
                                                                                                                      bBuySide ? oCurrOrder.OrderFilledQuantity : oCurrOrder.OrderWantedQuantity));
                 }
                 else

@@ -23,7 +23,13 @@ namespace MBTrading
         public static void ConnectHistoricalServer()
         {
             // Get MBQuateAPI connecting details
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://www.mbtrading.com/secure/getquoteserverxml.aspx?username=MyDemoUser91&password=547d38f5546ae2a658eecfa541d4a9b7ee1898208ec8706d7b26b13e8e372173");
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(string.Format("https://www.mbtrading.com/secure/getquoteserverxml.aspx?username={0}&password={1}", Consts.Web_UserName, Consts.Web_Password));
+            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls   |
+                                                   SecurityProtocolType.Tls11 |
+                                                   SecurityProtocolType.Tls12 |
+                                                   SecurityProtocolType.Ssl3;
+
             using (WebResponse response = request.GetResponse())
             {
                 // Read response xml

@@ -98,11 +98,10 @@ namespace MBTrading
             double dTotalCommSum = 0;
             double dCurrPLSum = 0;
             double dTotalPipsPL = 0;
-            double dAccuracyCount = 0;
 
             foreach (Share sCurrShare in Program.SharesList.Values)
             {
-                sCurrShare.CurrPL = sCurrShare.BuyDirection * FixGatewayUtils.CalculateProfit(sCurrShare.AverageBuyPrice, sCurrShare.CandlesList.CurrPrice, sCurrShare.Symbol, sCurrShare.PositionQuantity);
+                sCurrShare.CurrPL = sCurrShare.BuyDirection * FixGatewayUtils.CalculateProfit(sCurrShare.AverageBuyPrice, sCurrShare.lastBid, sCurrShare.Symbol, sCurrShare.PositionQuantity, true);
                 dCurrPLSum += sCurrShare.CurrPL;
                 dTotalProfitSum += sCurrShare.TotalProfit;
                 dTotalLossSum += sCurrShare.TotalLoss;    
@@ -112,8 +111,8 @@ namespace MBTrading
 
                 strShares += string.Format("{0}         {1}      {2}          {3}             {4}     {5}    {6}    {7}   {8}     {9}    {10}\n",
                                            sCurrShare.Symbol,
-                                           string.Format("{0,10:0.00000}", sCurrShare.CandlesList.CurrPrice),
-                                           sCurrShare.CandlesList.NN != null,
+                                           string.Format("{0,10:0.00000}", sCurrShare.lastBid),
+                                           string.Format("{0,10:0.00000}", sCurrShare.TempPatterns.Count),
                                            Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
                                            Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.AverageBuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.AverageBuyPrice),

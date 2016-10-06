@@ -11,9 +11,9 @@ namespace MBTrading.Entities
     {
         public static int OutcomeInterval = 1;
         public static bool TicsDirected = true;
-        public static int NumOfTicsSamples = 40;
-        public static double SimilarityRate = 0.7;
-        public static double SimilarityRateSteps = 0.2;
+        public static int NumOfTicsSamples = 150;
+        public static double SimilarityRate = 0.8;  // 0.7
+        public static double SimilarityRateSteps = 0;  // 0.2
 
         public static Dictionary<String, List<Pattern>> AllPatterns;
         static Pattern()

@@ -111,6 +111,7 @@
     <Compile Include="Entities\SafeInteger.cs" />
     <Compile Include="Entities\Share.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\OandaGatewayUtils.cs" />
     <Compile Include="Utils\FixGatewayUtils.cs" />
     <Compile Include="Utils\Mail.cs" />
     <Compile Include="Utils\MathUtils.cs" />

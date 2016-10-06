@@ -63,7 +63,7 @@ namespace MBTrading.Entities
             Order oOrderToRemove = null;
             OrdersBook.OpenOrders.TryRemove(strClientOrdID, out oOrderToRemove);
             oOrderToRemove.ParrentShare.BuyOrder = null;
-            Loger.ExecutionReport(oOrderToRemove.ParrentShare.Symbol, null, true, string.Format("Cid:{0} Oid:{1} Removed from book", oOrderToRemove.ClientOrdID, oOrderToRemove.OrderID));
+            Loger.ExecutionReport(oOrderToRemove.ParrentShare.Symbol, null, true, string.Format("Cid:{0} Oid:{1} Removed from book", oOrderToRemove.ClientOrdID, oOrderToRemove.Gateway_OrderID));
         }
         public static void RemoveStopLossOrder(string strOrderID)
         {

@@ -28,12 +28,14 @@ namespace MBTrading
         public int D_MilitraizedZone = 10; // 10
         public double Risk = 0;
         public bool PartialMode = false;
-		public bool bWasPartiald = false;
+        public bool bWasPartiald = false;
         private List<double> tempList;
         private List<double> tempListNN;
         public List<Pattern> TempPatterns;
         public List<Pattern> Patterns;
+        public int nForcedSpread = 0;
         public int nNumOfTicks = 0;
+        public int nWantedPipsOutcomeProfit = 1;
         public int nWhenToSellIndex = 0;
         public double lastBid = 0;
         public double lastAsk = 0;
@@ -47,53 +49,54 @@ namespace MBTrading
         }
 
 
-        public bool                     bDidFirstConditionHappened          = false;
-        public bool                     bDidSecondConditionHappened         = false;
-        public double                   StrongMinLow;
-        public int                      CandleAfterStrongMinIndex           = 0;
-        public int                      StartReversalIndex                  = 0;
-        public double                   ReversalStopLimitPrice              = 0;
-        public bool                     CrossIndicator                      = false;
-        public bool                     CrossEMALine                        = false;
+        public bool bDidFirstConditionHappened = false;
+        public bool bDidSecondConditionHappened = false;
+        public double StrongMinLow;
+        public int CandleAfterStrongMinIndex = 0;
+        public int StartReversalIndex = 0;
+        public double ReversalStopLimitPrice = 0;
+        public bool CrossIndicator = false;
+        public bool CrossEMALine = false;
 
 
-        public CandlesList                          CandlesList;
-        public ConcurrentQueue<MarketData>          PricesQueue;
-        public Order                                BuyOrder;
-        public double                               TotalPL;
-        public double                               TotalPipsPL;
-        public double                               TotalProfit;
-        public double                               TotalLoss;
-        public double                               CurrPL;
-        public double                               Commission;
-        public string                               Symbol;
-        public bool                                 IsPosition;
-        public Dictionary<int, Pair>                BuyPrices;
-        public double                               AverageBuyPrice;
-        public double                               SellPrice;
-        public double                               StopLoss;
-        public int                                  PositionQuantity;
-        public bool                                 PositionsReport;
-        public ConcurrentDictionary<string, Order>  StopLossOrders;
-        
-        public double                               PipsUnit;
-        public double                               PipsAboveForLimitPrice;
-        public double                               PipsToStopLimit;
-        public double                               PipsToStopLoss;
-        public double                               PipsToPartial;
-        public int                                  CandleIndex = 0;
-        public int                                  BuyIndex = -1;
-        public int                                  BuyDirection = -1;
-        public double                               FirstStopLoss = -1;
-        public int                                  SellIndex = -2;
-         
-        public bool                                 OffLineIsPosition                    = false;
-        public bool                                 OffLineOrBolBuy                      = false;
-        public int                                  OffLineCandleIndex                   = 0;
-        public int                                  OffLineBuyIndex                      = 0;
-        public int                                  OffLineSellIndex                     = 0;
-        public int                                  OffLineSignalIndex                   = 0;
-        public int                                  OffLineVirtualBuyIndex               = 0;
+        public CandlesList CandlesList;
+        public ConcurrentQueue<MarketData> PricesQueue;
+        public Order BuyOrder;
+        public double TotalPL;
+        public double TotalPipsPL;
+        public double TotalProfit;
+        public double TotalLoss;
+        public double CurrPL;
+        public double Commission;
+        public string Symbol;
+        public bool IsPosition;
+        public bool IsLong;
+        public Dictionary<long, Pair> BuyPrices;
+        public double AverageBuyPrice;
+        public double SellPrice;
+        public double StopLoss;
+        public int PositionQuantity;
+        public bool PositionsReport;
+        public ConcurrentDictionary<string, Order> StopLossOrders;
+
+        public double PipsUnit;
+        public double PipsAboveForLimitPrice;
+        public double PipsToStopLimit;
+        public double PipsToStopLoss;
+        public double PipsToPartial;
+        public int CandleIndex = 0;
+        public int BuyIndex = -1;
+        public int BuyDirection = -1;
+        public double FirstStopLoss = -1;
+        public int SellIndex = -2;
+
+        public bool OffLineIsPosition = false;
+        public bool OffLineOrBolBuy = false;
+        public int OffLineCandleIndex = 0;
+        public int OffLineBuyIndex = 0;
+        public int OffLineSellIndex = 0;
+        public int OffLineSignalIndex = 0;
+        public int OffLineVirtualBuyIndex = 0;
 
         // MachineLearning params
         public int PatternLength;
@@ -101,50 +104,50 @@ namespace MBTrading
         public int PatternOutcomeRange;
 
         // CTors
-        static  Share(){}
-        public  Share(string strSymbol)
+        static Share() { }
+        public Share(string strSymbol)
         {
-            this.PricesQueue                = new ConcurrentQueue<MarketData>();
-            this.BuyOrder                   = null;
-            this.TotalPipsPL                = 0;
-            this.CurrPL                     = 0;
-            this.TotalPL                    = 0;
-            this.TotalProfit                = 0;
-            this.TotalLoss                  = 0;
-            this.Commission                 = 0;
-            this.PositionQuantity           = 0;
-            this.BuyPrices                  = new Dictionary<int, Pair>();
-            this.AverageBuyPrice            = 0;
-            this.SellPrice                  = 0;
-            this.StopLoss                   = 0;
-            this.StopLossOrders             = new ConcurrentDictionary<string, Order>();
-            this.IsPosition                 = false;
-            this.Symbol                     = strSymbol;
-            this.PositionsReport            = false;
-            this.tempList                   = new List<double>();
-            this.tempListNN                 = new List<double>();
-            this.TempPatterns               = Pattern.AllPatterns[this.Symbol];
+            this.PricesQueue = new ConcurrentQueue<MarketData>();
+            this.BuyOrder = null;
+            this.TotalPipsPL = 0;
+            this.CurrPL = 0;
+            this.TotalPL = 0;
+            this.TotalProfit = 0;
+            this.TotalLoss = 0;
+            this.Commission = 0;
+            this.PositionQuantity = 0;
+            this.BuyPrices = new Dictionary<long, Pair>();
+            this.AverageBuyPrice = 0;
+            this.SellPrice = 0;
+            this.StopLoss = 0;
+            this.StopLossOrders = new ConcurrentDictionary<string, Order>();
+            this.IsPosition = false;
+            this.Symbol = strSymbol;
+            this.PositionsReport = false;
+            this.tempList = new List<double>();
+            this.tempListNN = new List<double>();
+            this.TempPatterns = Pattern.AllPatterns[this.Symbol];
             for (int i = 0; i < Consts.NEURAL_NETWORK_MA_LENGTH; i++) { this.tempList.Add(0); }
             for (int i = 0; i < Consts.NEURAL_NETWORK_MA_LENGTH; i++) { this.tempListNN.Add(0); }
         }
-        public  void UpdateShareConsts()
+        public void UpdateShareConsts()
         {
-            PipsUnit                = 0.0001;
-            PipsAboveForLimitPrice  = 0.0001 * Consts.PIPS_ABOVE_FOR_LIMIT_PRICE;
-            PipsToStopLimit         = 0.0001 * Consts.PIPS_TO_STOP_LIMIT;
-            PipsToStopLoss          = 0.0001 * Consts.PIPS_TO_STOP_LOSS;
-            PipsToPartial           = 0.0001 * Consts.PIPS_TO_PARTIAL;
+            PipsUnit = 0.0001;
+            PipsAboveForLimitPrice = 0.0001 * Consts.PIPS_ABOVE_FOR_LIMIT_PRICE;
+            PipsToStopLimit = 0.0001 * Consts.PIPS_TO_STOP_LIMIT;
+            PipsToStopLoss = 0.0001 * Consts.PIPS_TO_STOP_LOSS;
+            PipsToPartial = 0.0001 * Consts.PIPS_TO_PARTIAL;
 
-            if (this.Symbol.Contains("JPY")) 
+            if (this.Symbol.Contains("JPY"))
             {
-                PipsUnit                = 0.01;
-                PipsAboveForLimitPrice  = 0.01 * Consts.JPY_PIPS_ABOVE_FOR_LIMIT_PRICE;
-                PipsToStopLimit         = 0.01 * Consts.JPY_PIPS_TO_STOP_LIMIT;
-                PipsToStopLoss          = 0.01 * Consts.JPY_PIPS_TO_STOP_LOSS;
-                PipsToPartial           = 0.01 * Consts.JPY_PIPS_TO_PARTIAL;
+                PipsUnit = 0.01;
+                PipsAboveForLimitPrice = 0.01 * Consts.JPY_PIPS_ABOVE_FOR_LIMIT_PRICE;
+                PipsToStopLimit = 0.01 * Consts.JPY_PIPS_TO_STOP_LIMIT;
+                PipsToStopLoss = 0.01 * Consts.JPY_PIPS_TO_STOP_LOSS;
+                PipsToPartial = 0.01 * Consts.JPY_PIPS_TO_PARTIAL;
             }
         }
-        public  void InitializeShere()
+        public void InitializeShere()
         {
             Loger.ExecutionReport(this.Symbol, null, false, "Initilizing");
             new Thread(InitializeProcedure).Start();
@@ -178,7 +181,7 @@ namespace MBTrading
 
 
         // Online Mode
-        public  void Activate()
+        public void Activate()
         {
             Console.WriteLine(this.Symbol + "  Was Activated");
             this.UpdateShareConsts();
@@ -199,18 +202,19 @@ namespace MBTrading
         public void UpdateCandle(MarketData mdCurrMarketData)
         {
             #region Update MarketData
+            inc();
             switch (mdCurrMarketData.DataType)
             {
                 case (MarketDataType.Bid):
-                {
-                    this.lastBid = mdCurrMarketData.Value;
-                    break;
-                }
+                    {
+                        this.lastBid = mdCurrMarketData.Value;
+                        break;
+                    }
                 case (MarketDataType.Ask):
-                {
-                    this.lastAsk = mdCurrMarketData.Value;
-                    break;
-                }
+                    {
+                        this.lastAsk = mdCurrMarketData.Value;
+                        break;
+                    }
             }
             #endregion
 
@@ -235,16 +239,16 @@ namespace MBTrading
             {
                 if (this.Patterns != null && this.Patterns.Count > 0)
                 {
-                    if (Patterns[0].OutcomeSimPatterns * Patterns[0].OutcomeSimPatterns > 1)
+                    if (Patterns[0].OutcomeSimPatterns * Patterns[0].OutcomeSimPatterns > nWantedPipsOutcomeProfit)
                     {
                         if (this.TempPatterns.Count > 1 && this.TempPatterns.Last().Dimensions[0].Count == 0)
                         {
                             if (this.Patterns.First().Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
                             {
                                 int nDirection = this.Patterns.First().OutcomeSimPatterns > 0 ? 1 : -1;
-                                this.BuyLimitPlusStopMarket(this.Patterns.First().OutcomeSimPatterns > 0,
-                                                            this.lastAsk + (nDirection * this.PipsUnit * 3),
-                                                            this.lastBid - (nDirection * 10 * this.PipsUnit),
+                                this.BuyLimitPlusStopMarket(true, //this.Patterns.First().OutcomeSimPatterns > 0,
+                                                            nDirection == 1 ? this.lastAsk + this.PipsUnit * 3 : this.lastBid - this.PipsUnit * 3,
+                                                            nDirection == 1 ? this.lastBid - 10 * this.PipsUnit : this.lastAsk + 10 * this.PipsUnit,
                                                             Program.Quantity,
                                                             "Long: " + (nDirection > 0).ToString(),
                                                             null);
@@ -269,20 +273,44 @@ namespace MBTrading
         }
 
 
-        public bool BuyLimitPlusStopMarket(bool   bIsLong, 
-                                           double dLimit, 
+        public bool BuyLimitPlusStopMarket(bool bIsLong,
+                                           double dLimit,
                                            double dStopLoss,
-                                           int    nQuantity, 
-                                           string strLogMessage, 
-                                           int?   nOrderLastInThisSpecificCandleIndex)
+                                           int nQuantity,
+                                           string strLogMessage,
+                                           int? nCandleIndexTTL)
         {
-            return (FixGatewayUtils.BuyLimitPlusStopMarket(this.Symbol, dLimit, bIsLong, dStopLoss, nQuantity, null));
+            //Order oBuy = new Order(this.Symbol, nQuantity, dLimit, null, dStopLoss, true, bIsLong, nCandleIndexTTL);
+            //return (FixGatewayUtils.Buy(oBuy));
+
+            if (OandaGatewayUtils.Buy(this.Symbol, nQuantity, bIsLong, dLimit, dStopLoss))
+            {
+                this.IsPosition = true;
+                this.PositionQuantity = nQuantity;
+                this.IsLong = bIsLong;
+                this.StopLoss = dStopLoss;
+                this.BuyPrices.Add(this.tickIndex, new Pair(nQuantity, dLimit));
+                this.AverageBuyPrice = dLimit;
+                this.Commission += FixGatewayUtils.CalculateCommission(this.lastAsk, this.Symbol, this.PositionQuantity, bIsLong, true);
+                return true;
+            }
+
+            return false;
         }
-        public bool     SellMarket()
+        public bool SellMarket()
         {
-            return (FixGatewayUtils.SellMarket(this.Symbol, this.PositionQuantity));
+            //return (FixGatewayUtils.Sell(new Order(this.Symbol, this.PositionQuantity, null, null, null, false, false, null)));
+            if (OandaGatewayUtils.Sell(this.Symbol, this.PositionQuantity, this.IsLong))
+            {
+                this.InitializeProcedure();
+                this.IsPosition = true;
+                this.PositionQuantity = 0;
+                return true;
+            }
+
+            return false;
         }
-        public void     SellPartial(int nQuantityForPartial, bool bUpdateStopLossAlso)
+        public void SellPartial(int nQuantityForPartial, bool bUpdateStopLossAlso)
         {
             //int nCurrQuantity = this.PositionQuantity;
 
@@ -295,7 +323,7 @@ namespace MBTrading
             //    this.UpdateAllStopLossOrders(null, nCurrQuantity - nQuantityForPartial);
             //}
         }
-        public  void    UpdateAllStopLossOrders(double? dStop, int? nQuantity)
+        public void UpdateAllStopLossOrders(double? dStop, int? nQuantity)
         {
             double dPrevStopLoss = this.StopLoss;
 
@@ -308,7 +336,7 @@ namespace MBTrading
 
             Loger.ExecutionReport(this.Symbol, null, false, string.Format("Updating all stopLosses ({0}) - {1}Pips", this.StopLossOrders.Count, this.PipsUnit * dPipsChange));
         }
-        public  void    CancelAllStopLossOrders()
+        public void CancelAllStopLossOrders()
         {
             Loger.ExecutionReport(this.Symbol, null, false, string.Format("Canceling all stopLosses ({0})", this.StopLossOrders.Count));
             foreach (Order oStopOrder in this.StopLossOrders.Values)
@@ -321,18 +349,18 @@ namespace MBTrading
 
 
         // Didnt SCOD it!!!
-        public bool LimitSell(double dLimit)
+        public bool StopSell(double dStop)
         {
             if (FixGatewayUtils.LogonIndicator)
             {
-                FixGatewayUtils.SellLimit(this.Symbol, dLimit, this.PositionQuantity);
+                FixGatewayUtils.Sell(new Order(this.Symbol, this.PositionQuantity, null, dStop, null, false, false, null));
                 return (true);
             }
 
             return (false);
         }
         // מרגע שליחת פקודת הקניה...כל 60 שניות, צריך לבדוק אם מחיר מאיזושהי סיבה, המחיר הנוכחי ירד מתחת למחיר הסטופ והמניה עדיין פוזיציה
-        public  void   SecurePosition()
+        public void SecurePosition()
         {
             Thread.Sleep(60000);
             while (this.IsPosition)
@@ -352,7 +380,7 @@ namespace MBTrading
                 Thread.Sleep(60000);
             }
         }
-        public  static void PositionStatus()
+        public static void PositionStatus()
         {
             FixGatewayUtils.RequestForPositions();
             Thread.Sleep(10000);
@@ -363,7 +391,7 @@ namespace MBTrading
                 {
                     sCurrShare.InitializeShere();
                 }
-            }        
+            }
         }
 
 
@@ -461,8 +489,8 @@ namespace MBTrading
                 this.TempPatterns = Pattern.AllPatterns[this.Symbol];
 
                 #region
-              
-                if (Patterns[0].OutcomeSimPatterns * Patterns[0].OutcomeSimPatterns > 1)
+
+                if (Patterns[0].OutcomeSimPatterns * Patterns[0].OutcomeSimPatterns > nWantedPipsOutcomeProfit)
                 {
                     File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format("config: Tics: {0}    Interval: {1}\n", Pattern.NumOfTicsSamples, Pattern.OutcomeInterval));
                     File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), "-------------------------------------------------\n");
@@ -475,7 +503,18 @@ namespace MBTrading
                 }
                 else
                 {
-                    File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format(" x  {0}\n", Patterns[0].OutcomeSimPatterns));
+                    double dSomeone = 0;
+                    double dSomeoneCount = 0;
+                    foreach (Pattern p in Patterns)
+                    {
+                        if (p.OutcomeSimPatterns * p.OutcomeSimPatterns > nWantedPipsOutcomeProfit)
+                        {
+                            dSomeone = p.OutcomeSimPatterns;
+                            dSomeoneCount = p.SimPatterns.Count;
+                            break;
+                        }
+                    }
+                    File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format(" x  {0} -----> {1} ({2})\n", Patterns[0].OutcomeSimPatterns, dSomeone, dSomeoneCount));
                 }
               
                 #endregion
@@ -487,17 +526,26 @@ namespace MBTrading
             {
                 if (this.Patterns != null && this.Patterns.Count > 0)
                 {
-                    if (Patterns[0].OutcomeSimPatterns * Patterns[0].OutcomeSimPatterns > 1)
+                    for (int nTry = 0; nTry < 5 && nTry < Patterns.Count; nTry++)
                     {
-                        if (this.TempPatterns.Count > 1 && this.TempPatterns.Last().Dimensions[0].Count == 0)
+                        if (Patterns[nTry].OutcomeSimPatterns * Patterns[nTry].OutcomeSimPatterns > nWantedPipsOutcomeProfit)
                         {
-                            if (this.Patterns.First().Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
+                            if (this.TempPatterns.Count > 1 && this.TempPatterns.Last().Dimensions[0].Count == 0)
                             {
-                                int nDirection = this.Patterns.First().OutcomeSimPatterns > 0 ? 1 : -1;
-                                this.OffLineBuy(this.lastBid - (nDirection * 10 * this.PipsUnit), 10000, nDirection > 0);
-                                this.nWhenToSellIndex = (Pattern.NumOfTicsSamples * Pattern.OutcomeInterval) + (new Random().Next(1, 5) * Pattern.NumOfTicsSamples);
-                                File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("{0}", this.tickIndex));
+                                if (this.Patterns.First().Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
+                                {
+                                    int nDirection = this.Patterns.First().OutcomeSimPatterns > 0 ? 1 : -1;
+                                    this.OffLineBuy(nDirection == 1 ? 
+                                        (this.lastBid - 10 * this.PipsUnit) : 
+                                        (this.lastAsk + 10 * this.PipsUnit), 
+                                        10000, 
+                                        nDirection > 0);
+                                    this.nWhenToSellIndex = (Pattern.NumOfTicsSamples * Pattern.OutcomeInterval); //+ (new Random().Next(0, 5) * Pattern.NumOfTicsSamples);
+                                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("{0}: {1}",nTry, this.tickIndex));
+                                }
                             }
+
+                            break;
                         }
                     }
                 }
@@ -505,15 +553,18 @@ namespace MBTrading
             else
             {
                 this.nNumOfTicks++;
-                if (this.nNumOfTicks == this.nWhenToSellIndex)
+                if (this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit())
                 {
+                    int n = this.nNumOfTicks;
                     this.OffLineSell();
-                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}\n", this.tickIndex, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit));
+                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit));
                 }
-                else if ((this.lastBid - this.StopLoss) * this.BuyDirection < 0)
+                else if (((this.BuyDirection == 1) && (this.lastBid < this.StopLoss)) ||
+                         ((this.BuyDirection == -1) && (this.lastAsk > this.StopLoss))) 
                 {
+                    int n = this.nNumOfTicks;
                     this.OffLineSell();
-                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}\n", this.tickIndex, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit));
+                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     !.!.!.: {1}\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit));
                 }
             }
         }
@@ -524,22 +575,22 @@ namespace MBTrading
             this.StartReversalIndex = 0;
             this.OffLineBuyIndex = this.OffLineBuyIndex == 0 ? this.OffLineCandleIndex : this.OffLineBuyIndex;
 
-            this.BuyPrices.Add(this.OffLineCandleIndex, new Pair(nQuantity, this.lastAsk));
+            this.BuyPrices.Add(this.OffLineCandleIndex, new Pair(nQuantity, bLong ? this.lastAsk : this.lastBid));
             this.AverageBuyPrice = 0;
             foreach (Pair pBuy in this.BuyPrices.Values)
                 this.AverageBuyPrice += pBuy.Price;
             this.AverageBuyPrice /= this.BuyPrices.Count;
             this.StopLoss = dStopLoss;
 
-            this.Risk = this.lastAsk - this.StopLoss;
+
 
             this.OffLineIsPosition = true;
 
             this.PositionQuantity += nQuantity;
-            this.Commission += FixGatewayUtils.CalculateCommission(this.lastAsk, this.Symbol, this.PositionQuantity, true);
+//            this.Commission += FixGatewayUtils.CalculateCommission(bLong ? this.lastAsk : this.lastBid, this.Symbol, this.PositionQuantity, bLong,true);
 
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-                string.Format("1;{0};{1};{2}\n", this.Symbol, lastAsk, this.OffLineCandleIndex));
+                string.Format("1;{0};{1};{2}\n", this.Symbol, bLong ? this.lastAsk : this.lastBid, this.OffLineCandleIndex));
         }
         public void OffLineSell()
         {
@@ -547,19 +598,19 @@ namespace MBTrading
             this.UpdateShareConsts();
             this.nNumOfTicks = 0;
             this.FirstStopLoss = -1;
-            this.SellPrice = this.lastBid - (this.BuyDirection * this.PipsUnit * 0);
+            this.SellPrice = (this.BuyDirection == 1 ? this.lastBid : this.lastAsk) - (this.BuyDirection * this.PipsUnit * nForcedSpread);
             this.OffLineSellIndex = this.OffLineCandleIndex;
             this.CrossIndicator = false;
             this.CrossEMALine = false;
             this.OffLineIsPosition = false;
-			this.bWasPartiald = false;
+            this.bWasPartiald = false;
             this.OffLineBuyIndex = 0;
 
-            this.Commission += FixGatewayUtils.CalculateCommission(this.SellPrice, this.Symbol, this.PositionQuantity, false);
+//            this.Commission += FixGatewayUtils.CalculateCommission(this.SellPrice, this.Symbol, this.PositionQuantity, this.BuyDirection == 1, false);
             double dPL = 0;
             foreach (Pair pBuy in this.BuyPrices.Values)
             {
-                dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.SellPrice, this.Symbol, pBuy.Quantity, false);
+                dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.SellPrice, this.Symbol, pBuy.Quantity, this.BuyDirection == 1);
                 this.TotalPipsPL += (this.BuyDirection * (this.SellPrice - pBuy.Price)) / this.PipsUnit;
             }
             dPL = dPL * this.BuyDirection;
@@ -575,26 +626,17 @@ namespace MBTrading
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2};{3}\n", this.Symbol, this.SellPrice, this.BuyDirection, this.OffLineCandleIndex));
         }
-        public void OffLinePartialSell(int nQuentity)
+        public bool OffLineCheackIsProffit()
         {
-            // SELLLLLLLLLL
-            this.Commission += FixGatewayUtils.CalculateCommission(this.CandlesList.LastCandle.Bid, this.Symbol, this.PositionQuantity, false);
-            double dPL = 0;
+            double com = 2 * FixGatewayUtils.CalculateCommission(this.SellPrice, this.Symbol, this.PositionQuantity, this.BuyDirection == 1, false);
+            double prof = 0;
+            double SellPrice = (this.BuyDirection == 1 ? this.lastBid : this.lastAsk) - (this.BuyDirection * this.PipsUnit * nForcedSpread);
             foreach (Pair pBuy in this.BuyPrices.Values)
             {
-                pBuy.Quantity = pBuy.Quantity - nQuentity;
-                dPL += FixGatewayUtils.CalculateProfit(pBuy.Price, this.CandlesList.LastCandle.Bid, this.Symbol, nQuentity, false);
-                this.TotalPipsPL += (this.BuyDirection * (this.CandlesList.LastCandle.Bid - pBuy.Price)) / this.PipsUnit;
+                prof += FixGatewayUtils.CalculateProfit(pBuy.Price, SellPrice, this.Symbol, pBuy.Quantity, this.BuyDirection == 1);
             }
-            dPL = dPL * this.BuyDirection;
-            MongoDBUtils.DBEventAfterPositionSell(Program.AccountBallance, this.Symbol, dPL, this.OffLineCandleIndex, this.OffLineCandleIndex - this.OffLineBuyIndex, this.AverageBuyPrice, this.CandlesList.LastCandle.Bid);
-            this.TotalPL += dPL;
-            if (dPL < 0)
-            { this.TotalLoss += dPL; }
-            else
-            { this.TotalProfit += dPL; }
-
-            this.PositionQuantity = this.PositionQuantity - nQuentity;
+            prof = prof * this.BuyDirection;
+            return (prof > com);
         }
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {

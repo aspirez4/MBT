@@ -31,6 +31,7 @@ namespace MBTrading
 
         // MBTradingUtils.cs Members - Fix Gateway
         public static bool         WorkOffLineMode;
+        public static bool         WorkOandaMode;
         public static string       FixGW_TargetCompID;
         public static string       FisGW_SenderCompID;
         public static string       FixGW_Pass;
@@ -96,6 +97,7 @@ namespace MBTrading
 
 
             WorkOffLineMode     = bool.Parse(ConfigurationManager.AppSettings["WorkOffLineMode"]);
+            WorkOandaMode       = bool.Parse(ConfigurationManager.AppSettings["OandaMode"]);
             FixGW_TargetCompID  = ConfigurationManager.AppSettings["FixGW_TargetCompID"];
             FisGW_SenderCompID  = ConfigurationManager.AppSettings["FixGW_SenderCompID"];
             FixGW_Pass          = ConfigurationManager.AppSettings["FixGW_Pass"];

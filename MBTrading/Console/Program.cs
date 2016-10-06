@@ -40,7 +40,7 @@ namespace MBTrading
 
 
             // Connect to MBT Fix Gateway
-            if (!Consts.WorkOffLineMode) { new Thread(FixGatewayUtils.GatewayStart).Start(); }
+            if (!Consts.WorkOffLineMode && !Consts.WorkOandaMode) { new Thread(FixGatewayUtils.GatewayStart).Start(); }
 
 
             // Initialize Shares 

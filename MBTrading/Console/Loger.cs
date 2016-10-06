@@ -23,7 +23,7 @@ namespace MBTrading
             try
             {
                 File.AppendAllText(string.Format("{0}\\ErrorLog.txt", Consts.FilesPath),
-                                   string.Format("{0}    - {1}                    - {2}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 
+                                   string.Format("{0}    - {1}{2}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 
                                    sbExceptionBuilderException.ToString(), 
                                    sbExceptionBuilderStackTrace.ToString()));
             }
@@ -54,12 +54,12 @@ namespace MBTrading
             }
             catch { GenericLogFile("ExecutionsReportCatch", "problem in loging to ExecutionReport log"); }
         }
-        public static void Messages(string strString)
+        public static void Messages(string strString, bool bNewLineAfterText)
         {
             try
             {
                 File.AppendAllText(string.Format("{0}\\Messages.txt", Consts.FilesPath),
-                                   string.Format("{0}       - {1}\r\n", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), strString));
+                                   string.Format("{0}       - {1}{2}", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), strString, bNewLineAfterText ? "\r\n": string.Empty));
             }
             catch { }
         }

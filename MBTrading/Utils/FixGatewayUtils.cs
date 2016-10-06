@@ -20,8 +20,9 @@ namespace MBTrading
         public  static SafeInteger                              Sequence                        = null;
         public  static bool                                     LogonIndicator                  = false;
         public  static bool                                     OperationalTime                 = false;
-        public  static bool                                     SystemProblem = false;
+        public  static bool                                     SystemProblem                   = false;
         public  static ConcurrentDictionary<int, string>        MessageHistoryList              = null;
+        public  static List<string>                             LinkedAccounts                  = new List<string>();
         public  static int                                      LastGatewaySequence;
         public  static DateTime                                 LastHB;
         private static long                                     _lockFlag                   = 0;
@@ -108,8 +109,8 @@ namespace MBTrading
         public static void CleanSequence()
         {
             // Initiate all Sequence companents
-            FixGatewayUtils.Sequence = new SafeInteger(1);
-            FixGatewayUtils.LastGatewaySequence = 1;
+            FixGatewayUtils.Sequence = new SafeInteger(0);
+            FixGatewayUtils.LastGatewaySequence = 0;
             FixGatewayUtils.MessageHistoryList.Clear();
         }
         public static bool Send(string strSequence, string strMessageFormated)
@@ -119,7 +120,7 @@ namespace MBTrading
                 // Send request
                 byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
                 networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
+                Loger.Messages(strMessageFormated, false);
                 networkStream.Flush();
             }
             catch (Exception e)
@@ -160,7 +161,7 @@ namespace MBTrading
                     // Login to server
                     byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
                     networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
+                    Loger.Messages(strMessageFormated, false);
                     networkStream.Flush();
                 }
                 catch (Exception e)
@@ -197,7 +198,7 @@ namespace MBTrading
                 // Login to server
                 byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
                 networkStream.Write(loginStream, 0, loginStream.Length);
-                Loger.Messages(strMessageFormated);
+                Loger.Messages(strMessageFormated, false);
                 networkStream.Flush();
 
                 // Disconnecting TCP Level
@@ -211,7 +212,20 @@ namespace MBTrading
         }
         public static void Subscribe()
         {
+            string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
+            string strRequiredValuesFormated = string.Format(RequiredValues, "t", strSequence, DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss"));
+            string strNewOrderFormated = string.Empty;
 
+            strNewOrderFormated = string.Format("1={0}17=110056={1}10023={2}",
+                 LinkedAccounts[0], "MBTradingSub100", 'Y');
+            
+
+            string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
+            string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
+            strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
+
+            // Send request
+            FixGatewayUtils.Send(strSequence, strMessageFormated);
         }
 
         
@@ -278,7 +292,7 @@ namespace MBTrading
                     // Send request
                     byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
                     networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
+                    Loger.Messages(strMessageFormated, false);
                     networkStream.Flush();
                 }
             }
@@ -344,37 +358,51 @@ namespace MBTrading
 
             return (false);
         }
-        public static bool SellLimit(string strSymbol, double dLimit, int nQuantity)
-        {         
-            string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-            string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-            string strRequiredValuesFormated = string.Format(RequiredValues, "D", strSequence, strDateTimeUTC);
-            string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}44={5}47={6}54={7}55={8}59={9}60={10}100={11}553={12}", Consts.Account_No, strSequence + strDateTimeUTC, 1, nQuantity, 2, dLimit, 'I', 2, strSymbol, 1, strDateTimeUTC, "MBTX", Consts.Account_UserName);
-            string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
-            string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
-            strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
-
-            // Send request
-            return (FixGatewayUtils.Send(strSequence, strMessageFormated));
-        }
-        public static bool SellMarket(string strSymbol, int nQuantity)
+        public static bool Sell(Order o)
         {
             if (FixGatewayUtils.LogonIndicator)
             {
-                string strSequence = FixGatewayUtils.GetSecureSequence().ToString();
-                string strDateTimeUTC = DateTime.UtcNow.ToString("yyyyMMdd-HH:mm:ss");
-                string strRequiredValuesFormated = string.Format(RequiredValues, "D", strSequence, strDateTimeUTC);
-                string strNewOrderFormated = string.Format("1={0}11={1}21={2}38={3}40={4}47={5}54={6}55={7}59={8}60={9}100={10}553={11}", Consts.Account_No, strSequence + strDateTimeUTC, 1, nQuantity, 1, 'I', 2, strSymbol, 1, strDateTimeUTC, "MBTX", Consts.Account_UserName);
+                string strRequiredValuesFormated = string.Format(RequiredValues, "D", o.Sequence, o.DateTimeUTC);
+                string strNewOrderFormated = string.Empty;
+
+                // Limit Sell
+                if (o.Limit != null)
+                {
+                    strNewOrderFormated = string.Format("1={0}11={1}38={2}40=444={3}47=I54={4}55={5}59={6}60={7}76={8}529=1",
+                        Consts.Account_No, o.ClientOrdID, o.OrderWantedQuantity, o.Limit, "2", o.Symbol, TimeInForce, o.DateTimeUTC, "MBTX");
+                }
+                // Market Sell
+                else
+                {
+                    strNewOrderFormated = string.Format("1={0}11={1}38={2}40=247=I54={4}55={5}59={6}60={7}76={8}529=1",
+                        Consts.Account_No, o.ClientOrdID, o.OrderWantedQuantity, "2", o.Symbol, TimeInForce, o.DateTimeUTC, "MBTX");
+                }
+
+
                 string strBodyStringFormated = string.Format("{0}{1}", strRequiredValuesFormated, strNewOrderFormated);
                 string strMessageFormated = string.Format(Message, strBodyStringFormated.Length, strBodyStringFormated);
                 strMessageFormated = FixGatewayUtils.CalculateCheckSum(strMessageFormated);
 
                 // Send request
-                return (FixGatewayUtils.Send(strSequence, strMessageFormated));
+                if (!FixGatewayUtils.Send(o.Sequence, strMessageFormated))
+                    return false;
+
+
+                if (o.IsBuy)
+                {
+                    OrdersBook.AddNewBuyOrder(o);
+                }
+                else
+                {
+                    OrdersBook.AddNewClientStopLossOrder(o);
+                }
+
+                return (true);
             }
 
             return (false);
         }
+       
         public static bool CancelOrder(Order o)
         {
             if (FixGatewayUtils.LogonIndicator)
@@ -442,7 +470,7 @@ namespace MBTrading
                     // Send request
                     byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strMessageFormated);
                     networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strMessageFormated);
+                    Loger.Messages(strMessageFormated, false);
                     networkStream.Flush();
                     return (true);
                 }
@@ -470,7 +498,7 @@ namespace MBTrading
                     // Send request
                     byte[] loginStream = System.Text.Encoding.ASCII.GetBytes(strHistory);
                     networkStream.Write(loginStream, 0, loginStream.Length);
-                    Loger.Messages(strHistory);
+                    Loger.Messages(strHistory, false);
                     networkStream.Flush();
                 }
             }
@@ -567,7 +595,7 @@ namespace MBTrading
                     // Run over messages
                     foreach (Dictionary<int, string> dicCurrDic in lstResponse)
                     {
-                        Loger.Messages(FixGatewayUtils.UnhandledMessagesToString(dicCurrDic));
+                        Loger.Messages(FixGatewayUtils.UnhandledMessagesToString(dicCurrDic), true);
                         if ((dicCurrDic.ContainsKey(34)) && (dicCurrDic.ContainsKey(35)))
                             Loger.Sequence((LastGatewaySequence + 1) + " " + dicCurrDic[34] + "          " + dicCurrDic[35]);
 
@@ -697,7 +725,7 @@ namespace MBTrading
 
                                                     if (oCurrBuyOrder != null)
                                                     {
-                                                        Loger.ExecutionReport(sCurrShare.Symbol, null, true, string.Format("Cid:{0} Oid:{1} CANCELD", oCurrBuyOrder.ClientOrdID, oCurrBuyOrder.OrderID));
+                                                        Loger.ExecutionReport(sCurrShare.Symbol, null, true, string.Format("Cid:{0} Oid:{1} CANCELD", oCurrBuyOrder.ClientOrdID, oCurrBuyOrder.Gateway_OrderID));
                                                         OrdersBook.RemoveBuyOrder(dicCurrDic[41]);
 
                                                         if (sCurrShare.PositionQuantity == 0)
@@ -715,7 +743,7 @@ namespace MBTrading
                                                     {
                                                         bool bHasOrderFilledQuantitoIncreased = oCurrBuyOrder.FGWResponseBuyOrder(dicCurrDic[37], 
                                                                                                                                   double.Parse(dicCurrDic[6]), 
-                                                                                                                                  dicCurrDic.ContainsKey(44) ? double.Parse(dicCurrDic[44]) : oCurrBuyOrder.LimitPrice, 
+                                                                                                                                  (double)(dicCurrDic.ContainsKey(44) ? double.Parse(dicCurrDic[44]) : oCurrBuyOrder.Limit), 
                                                                                                                                   int.Parse(dicCurrDic[14]));
 
                                                         if (bHasOrderFilledQuantitoIncreased)
@@ -768,7 +796,7 @@ namespace MBTrading
                                                         // For PartialOrders -> The order qountity was filed but there is still position quantity
                                                         if ((int)double.Parse(dicCurrDic[151]) == 0)
                                                         {
-                                                            OrdersBook.RemoveStopLossOrder(oCurrStopLossOrder.OrderID);
+                                                            OrdersBook.RemoveStopLossOrder(oCurrStopLossOrder.Gateway_OrderID);
                                                         }
 
                                                         // There is no Leaves Quantity 
@@ -811,7 +839,12 @@ namespace MBTrading
                                                     else
                                                     {
                                                         Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("Oid:{0} New Server StopLoss", dicCurrDic[37]));
-                                                        OrdersBook.AddNewServerStopLossOrder(dicCurrDic[37], dicCurrDic[11], sCurrShare.Symbol, dicCurrDic.ContainsKey(38) ? int.Parse(dicCurrDic[38]) : -1);
+                                                        OrdersBook.AddNewServerStopLossOrder(
+                                                            dicCurrDic[37], 
+                                                            dicCurrDic[11], 
+                                                            sCurrShare.Symbol,
+                                                            dicCurrDic.ContainsKey(38) ? int.Parse(dicCurrDic[38]) : -1,
+                                                            double.Parse(dicCurrDic[99]));
                                                         oStopLossOrder = OrdersBook.Get(dicCurrDic[37]);
                                                     }
 
@@ -824,7 +857,7 @@ namespace MBTrading
                                                 {
                                                     Order oCurrStopLossOrder = null;
                                                     OrdersBook.TryGet(dicCurrDic[37], out oCurrStopLossOrder);
-                                                    oCurrStopLossOrder.FGWResponse = OrderFGWResponse.Rejected;
+                                                    oCurrStopLossOrder.GatewayStatusResponse = OrderFGWResponse.Rejected;
                                                     Loger.ExecutionReport(sCurrShare.Symbol, null, false, string.Format("Oid:{0} Order Rejected", dicCurrDic[37]));
                                                     // TODO: מה לעשות עם פקודת המכירה או הסטופ נדחת?
                                                 }
@@ -1047,7 +1080,7 @@ namespace MBTrading
                     dic = new Dictionary<int, string>();
 
                     // Parse the messages into list of dictionaries
-                    while ((nIndex < arrMessage.Length) && (arrMessage[nIndex] != 0))
+                    while ((nIndex < arrMessage.Length) && (arrMessage[nIndex] != 10) && (arrMessage[nIndex] != 0))
                     {
                         nKey = 0;
                         strValue.Clear();
@@ -1078,10 +1111,13 @@ namespace MBTrading
                         nIndex++;
                         /////////////////////////////////////////////////////
 
+                        try
+                        {
+                            dic.Add(nKey, strValue.ToString());
+                        }
+                        catch (ArgumentException e) { Loger.ErrorLog(new Exception("Key - " + nKey + " Is already exists in message 35=" + (dic.ContainsKey(35) ? dic[35].ToString() : "?") ,e)); }
 
-                        dic.Add(nKey, strValue.ToString());
-
-                        if ((nKey == 10) || (arrMessage[nIndex - 1] == '\n'))
+                        if (nKey == 10)
                         {
                             lstToRet.Add(dic);
                             dic = new Dictionary<int, string>();
@@ -1099,7 +1135,7 @@ namespace MBTrading
         }
 
 
-        public static double CalculateProfit(double dOpen, double dClose, string strSymbol, int nQuantity, bool ask)
+        public static double CalculateProfit(double dOpen, double dClose, string strSymbol, int nQuantity, bool bIsLong)
         {
             if (dOpen == 0)
             {
@@ -1118,13 +1154,13 @@ namespace MBTrading
                         {
                             if (strCurrSymbol.Equals(strSymbol + "/USD"))
                             {
-                                dQuoteToHomeCurrency = (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
+                                dQuoteToHomeCurrency = (bIsLong ? Program.SharesList[strCurrSymbol].lastBid : Program.SharesList[strCurrSymbol].lastAsk);
 
                                 break;
                             }
                             else if (strCurrSymbol.Equals("USD/" + strSymbol))
                             {
-                                dQuoteToHomeCurrency = 1 / (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
+                                dQuoteToHomeCurrency = 1 / (bIsLong ? Program.SharesList[strCurrSymbol].lastBid : Program.SharesList[strCurrSymbol].lastAsk);
 
                                 break;
                             }
@@ -1137,7 +1173,7 @@ namespace MBTrading
                 return ((dClose - dOpen) * dQuoteToHomeCurrency * nQuantity);
             }
         }
-        public static double CalculateRateToProfit(double dPL, double dOpen, string strSymbol, int nQuantity, bool ask)
+        public static double CalculateRateToProfit(double dPL, double dOpen, string strSymbol, int nQuantity, bool bIsLong)
         {
             strSymbol = strSymbol.Remove(0, 4);
             double dQuoteToHomeCurrency = 1;
@@ -1147,13 +1183,13 @@ namespace MBTrading
                 {
                     if (strCurrSymbol.Equals(strSymbol + "/USD"))
                     {
-                        dQuoteToHomeCurrency = (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
+                        dQuoteToHomeCurrency = (bIsLong ? Program.SharesList[strCurrSymbol].lastBid : Program.SharesList[strCurrSymbol].lastAsk);
 
                         break;
                     }
                     else if (strCurrSymbol.Equals("USD/" + strSymbol))
                     {
-                        dQuoteToHomeCurrency = 1 / (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid);
+                        dQuoteToHomeCurrency = 1 / (bIsLong ? Program.SharesList[strCurrSymbol].lastBid : Program.SharesList[strCurrSymbol].lastAsk);
 
                         break;
                     }
@@ -1165,7 +1201,7 @@ namespace MBTrading
 
             return ((dPL / (dQuoteToHomeCurrency * nQuantity)) + dOpen);
         }
-        public static double CalculateCommission(double dRate, string strSymbol, int nQuantity, bool ask)
+        public static double CalculateCommission(double dRate, string strSymbol, int nQuantity, bool bIsLong, bool bBuy)
         {
             if (strSymbol.Contains("USD/"))
             {
@@ -1184,7 +1220,8 @@ namespace MBTrading
                     {
                         if (strCurrSymbol.Equals(strSymbol + "/USD"))
                         {
-                            return (nQuantity * (ask ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid) * 0.000025);
+                            return (nQuantity * (bIsLong ? (bBuy ? Program.SharesList[strCurrSymbol].lastAsk : Program.SharesList[strCurrSymbol].lastBid) :
+                                                           (bBuy ? Program.SharesList[strCurrSymbol].lastBid : Program.SharesList[strCurrSymbol].lastAsk)) * 0.000025);
                         }
                     }
                 }

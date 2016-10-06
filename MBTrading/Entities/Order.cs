@@ -123,10 +123,9 @@ namespace MBTrading
                     {
                         new Thread(() =>
                         {
-                            while (!FixGatewayUtils.NewStopLossOrder(this.Symbol,
-                                                                     (double)this.StopLoss,
-                                                                     nFilledQuantitiy,
-                                                                     out this.ConnectedStopLossClientOrdID)) { Thread.Sleep(1000); }
+                            while (!FixGatewayUtils.Sell(
+                                new Order(this.Symbol, nFilledQuantitiy, null, this.StopLoss, null, false, false, null))) 
+                                    { Thread.Sleep(1000); }
                         }).Start();
                     }
                     // After first fill
@@ -162,23 +161,21 @@ namespace MBTrading
                 while (!FixGatewayUtils.CancelOrder(this)) { Thread.Sleep(1000); }
             }).Start();    
         }
-        public void UpdateStopLossOrder(double? dStop, int? nQuantitiy)
+        public void UpdateStopLossOrder(double? dStopLoss, int? nQuantitiy)
         {
             while (this.GatewayStatusResponse != OrderFGWResponse.PositiveConfirmed) { Thread.Sleep(1000); }
-            while (!FixGatewayUtils.UpdateStopLossOrder(this.Symbol,
-                                                        this.ClientOrdID,
-                                                        dStop == null ? this.StopLossPrice: (double)dStop,
-                                                        nQuantitiy == null ? this.ParrentShare.PositionQuantity : (int)nQuantitiy)) { Thread.Sleep(1000); }
+            while (!FixGatewayUtils.UpdateStopLossOrder(this,
+                                                       (int)(nQuantitiy == null ? this.ParrentShare.PositionQuantity : nQuantitiy),
+                                                       (double)(dStopLoss == null ? this.StopLoss : dStopLoss))) { Thread.Sleep(1000); }
         }
-        public void UpdateStopLossOrder_Async(double? dStop, int? nQuantitiy)
+        public void UpdateStopLossOrder_Async(double? dStopLoss, int? nQuantitiy)
         {
             new Thread(() =>
             {
                 while (this.GatewayStatusResponse != OrderFGWResponse.PositiveConfirmed) { Thread.Sleep(1000); }
-                while (!FixGatewayUtils.UpdateStopLossOrder(this.Symbol,
-                                                            this.ClientOrdID,
-                                                            dStop == null ? this.StopLossPrice : (double)dStop,
-                                                            nQuantitiy == null ? this.ParrentShare.PositionQuantity : (int)nQuantitiy)) { Thread.Sleep(1000); }
+                while (!FixGatewayUtils.UpdateStopLossOrder(this,
+                                                           (int)(nQuantitiy == null ? this.ParrentShare.PositionQuantity : nQuantitiy),
+                                                           (double)(dStopLoss == null ? this.StopLoss : dStopLoss))) { Thread.Sleep(1000); }
             }).Start();  
         }
     }

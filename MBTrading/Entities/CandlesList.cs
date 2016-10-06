@@ -74,7 +74,7 @@ namespace MBTrading
             WMA.RegisterIndicator(this);
             TDI.RegisterIndicator(this);
 //          ZigZag5.RegisterIndicator(this);
-//          ZigZag12.RegisterIndicator(this);
+            ZigZag12.RegisterIndicator(this);
             ATR.RegisterIndicator(this);
 
             // NewIndicatorValue and CompleteInitializationActions 

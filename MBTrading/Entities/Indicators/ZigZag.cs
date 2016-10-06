@@ -392,7 +392,7 @@ namespace MBTrading.Entities.Indicators
         {
             
         }
-        // Searching index of the highest bar
+        // Searching index of the highest bar From startIndex --> Backwards
         private double Highest(int nDepth, int nStartIndex)
         {
 	        // Depth correction if need
@@ -415,7 +415,7 @@ namespace MBTrading.Entities.Indicators
 	        // Return index of the highest bar
             return (dMaxVal);
         }
-        // Searching index of the lowest bar        
+        // Searching index of the lowest bar From startIndex --> Backwards
         private double Lowest(int nDepth, int nStartIndex)
         {
 	        // Depth correction if need

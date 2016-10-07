@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MBTrading.Utils;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,11 +12,18 @@ namespace MBTrading.Entities
     {
         public static int OutcomeInterval = 1;
         public static bool TicsDirected = true;
-        public static int NumOfTicsSamples = 150;
+        public static int NumOfTicsSamples = 40;
         public static double SimilarityRate = 0.8;  // 0.7
         public static double SimilarityRateSteps = 0;  // 0.2
-
         public static Dictionary<String, List<Pattern>> AllPatterns;
+        /////////////////////////////////////////
+        public static double PatternPopularityRatingWeight = 0.5;
+        public static double PatternAccuracyRatingWeight = 0.45;
+        public static double PatternProfitRatingWeight = 0.05;
+        public static double PatternProfitThreshold = Share.nWantedPipsOutcomeProfit;
+        public static double PatternAccuracyThreshold = 80;
+        public static double PatternPopularityThreshold = 10;
+
         static Pattern()
         {
             AllPatterns = new Dictionary<string, List<Pattern>>();
@@ -46,6 +54,7 @@ namespace MBTrading.Entities
         public ConcurrentDictionary<int, DimensionsData> FutureDimensions;
         public ConcurrentBag<Pattern> SimPatterns;
         public int? PatternStartHour;
+        public int Rating;
         public double Accuracy;
         public double OutcomePrivate;
         public double OutcomeSimPatterns;
@@ -53,6 +62,7 @@ namespace MBTrading.Entities
         public Pattern()
         {
             this.PatternStartHour = null;
+            this.Rating = 0;
             this.Accuracy = 0;
             this.OutcomePrivate = 0;
             this.OutcomeSimPatterns = 0;
@@ -116,10 +126,10 @@ namespace MBTrading.Entities
             }
         }
 
-        public static void Tick(MarketData md, ref List<Pattern> lstSharePatterns, double dPipsUnit)
+        public static void Tick(MarketData md, double dLastBid, double dLastAsk, ref List<Pattern> lstSharePatterns, double dPipsUnit)
         {
             int nSmallestDimension = TicsDirected ? 0 : 1;
-            double dValue = md.Value;
+            double dValue = (dLastBid + dLastAsk) / 2;
             if (md.DataType == MarketDataType.Volume)
             {
                 dValue = md.Price;
@@ -241,7 +251,7 @@ namespace MBTrading.Entities
 
                 Parallel.ForEach(Pattern.AllPatterns[strSymbol], currPattern =>
                 {
-                    if (basePattern.Similar(currPattern))
+                    if (!basePattern.Equals(currPattern) && basePattern.Similar(currPattern))
                     {
                         basePattern.SimPatterns.Add(currPattern);
                         basePattern.OutcomeSimPatterns += currPattern.OutcomePrivate;
@@ -252,15 +262,17 @@ namespace MBTrading.Entities
 
             foreach (Pattern basePattern in Pattern.AllPatterns[strSymbol])
             {
-                basePattern.OutcomeSimPatterns /= basePattern.SimPatterns.Count;
                 basePattern.Accuracy = 0;
-
-                foreach (Pattern simPattern in basePattern.SimPatterns)
+                if (basePattern.SimPatterns.Count > 0)
                 {
-                    basePattern.Accuracy += basePattern.OutcomeSimPatterns * simPattern.OutcomePrivate > 0 ? 100 : 0;
-                }
+                    foreach (Pattern simPattern in basePattern.SimPatterns)
+                    {
+                        basePattern.Accuracy += basePattern.OutcomeSimPatterns * simPattern.OutcomePrivate > 0 ? 100 : 0;
+                    }
 
-                basePattern.Accuracy /= basePattern.SimPatterns.Count;
+                    basePattern.Accuracy /= basePattern.SimPatterns.Count;
+                    basePattern.OutcomeSimPatterns /= basePattern.SimPatterns.Count;
+                }
             }
 
 
@@ -278,23 +290,68 @@ namespace MBTrading.Entities
         {
             List<Pattern> lstToRelex = Pattern.AllPatterns[strSymbol];
 
+            double M_Accuracy = 0;
+            double M_Profit = 0;
+            double M_Popularity = 0;
+            double SD_Accuracy = 0;
+            double SD_Profit = 0;
+            double SD_Popularity = 0;
+            List<double> lstAccuracy = new List<double>();
+            List<double> lstProfit = new List<double>();
+            List<double> lstPopularity = new List<double>();
+
+            foreach (Pattern pCurr in lstToRelex)
+            {
+                // Only if patten is above thresholds
+                if ((pCurr.SimPatterns.Count > PatternPopularityThreshold) &&
+                    (pCurr.Accuracy > Pattern.PatternAccuracyThreshold) &&
+                    (pCurr.OutcomeSimPatterns * pCurr.OutcomeSimPatterns > Pattern.PatternProfitThreshold))
+                {
+                    lstAccuracy.Add(pCurr.Accuracy);
+                    lstProfit.Add(pCurr.OutcomeSimPatterns * pCurr.OutcomeSimPatterns);
+                    lstPopularity.Add(pCurr.SimPatterns.Count);
+                }
+            }
+
+            SD_Accuracy = MathUtils.GetStandardDeviation(lstAccuracy, out M_Accuracy);
+            SD_Profit = MathUtils.GetStandardDeviation(lstProfit, out M_Profit);
+            SD_Popularity = MathUtils.GetStandardDeviation(lstPopularity, out M_Popularity);
+
+
+            Parallel.ForEach(lstToRelex, pCurrForRating =>
+            {
+                if ((pCurrForRating.SimPatterns.Count > PatternPopularityThreshold) &&
+                    (pCurrForRating.Accuracy > Pattern.PatternAccuracyThreshold) &&
+                    (pCurrForRating.OutcomeSimPatterns * pCurrForRating.OutcomeSimPatterns > Pattern.PatternProfitThreshold))
+                {
+                    pCurrForRating.Rating = (int)(
+                        (MathUtils.KondratenkoKuperinNormalization(pCurrForRating.Accuracy,M_Accuracy, SD_Accuracy) * Pattern.PatternAccuracyRatingWeight) +
+                        (MathUtils.KondratenkoKuperinNormalization(pCurrForRating.OutcomeSimPatterns * pCurrForRating.OutcomeSimPatterns, M_Profit, SD_Profit) * Pattern.PatternProfitRatingWeight) +
+                        (MathUtils.KondratenkoKuperinNormalization(pCurrForRating.SimPatterns.Count, M_Popularity, SD_Popularity) * Pattern.PatternPopularityRatingWeight) * 100000000);
+                }
+            });
+
             for (int nIndex = 0; nIndex < nWantedSize; nIndex++)
             {
-                lstToRelex.Sort((p1, p2) => p2.SimPatterns.Count - p1.SimPatterns.Count);
+                lstToRelex.Sort((p1, p2) => p2.Rating - p1.Rating);
            
                 foreach (Pattern sim in lstToRelex[nIndex].SimPatterns)
                 {
-                    if (!sim.Equals(lstToRelex[nIndex]))
-                    {
-                        sim.claen();
-                        lstToRelex.Remove(sim);
-                    }
+                    sim.claen();
+                    lstToRelex.Remove(sim);
                 }
             }
 
             Pattern.claen(lstToRelex, nWantedSize, lstToRelex.Count - 1);
             lstToRelex.RemoveRange(nWantedSize, lstToRelex.Count - nWantedSize);
             
+            // Remove rating zero if left
+            for (int nRemoveRatingZero = lstToRelex.Count - 1; nRemoveRatingZero >= 0; nRemoveRatingZero--)
+            {
+                if (lstToRelex[nRemoveRatingZero].Rating == 0)
+                    lstToRelex.RemoveAt(nRemoveRatingZero);
+            }
+
             return lstToRelex;
         }
         public static void claen(List<Pattern> lstToClean, int nStartIndex, int nEndIndex)

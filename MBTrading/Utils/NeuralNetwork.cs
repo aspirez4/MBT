@@ -52,7 +52,7 @@ namespace MBTrading.Utils
             // Normalization formula by Kondratenko-Kuperin
             foreach (double dCurr in lstToNormalize)
             {
-                lstToReturn.Add(1 / (1 + Math.Pow(Math.E, (this.M - dCurr) / this.dStandardDeviation)));
+                lstToReturn.Add(MathUtils.KondratenkoKuperinNormalization(dCurr, this.M, this.dStandardDeviation));
             }
 
             return lstToReturn;

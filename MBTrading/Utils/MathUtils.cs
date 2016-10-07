@@ -49,5 +49,9 @@ namespace MBTrading.Utils
 
         }
 
+        public static double KondratenkoKuperinNormalization(double currToNorm, double dMean, double dStandardDeviation)
+        {
+            return dStandardDeviation == 0 ? 1 : (1 / (1 + Math.Pow(Math.E, (dMean - currToNorm) / dStandardDeviation)));
+        }
     }
 }

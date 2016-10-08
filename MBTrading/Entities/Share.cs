@@ -39,7 +39,7 @@ namespace MBTrading
         public List<Pattern> Patterns;
         public int nForcedSpread = 0;
         public int nNumOfTicks = 0;
-        public static int nWantedPipsOutcomeProfit = 1;
+        public static double nWantedPipsOutcomeProfit = Pattern.PatternProfitThreshold;
         public int nWhenToSellIndex = 0;
         public double lastBid = 0;
         public double lastAsk = 0;
@@ -79,6 +79,7 @@ namespace MBTrading
         public double AverageBuyPrice;
         public double SellPrice;
         public double StopLoss;
+        public double StopTarget;
         public int PositionQuantity;
         public bool PositionsReport;
         public ConcurrentDictionary<string, Order> StopLossOrders;
@@ -124,6 +125,7 @@ namespace MBTrading
             this.AverageBuyPrice = 0;
             this.SellPrice = 0;
             this.StopLoss = 0;
+            this.StopTarget = 0;
             this.StopLossOrders = new ConcurrentDictionary<string, Order>();
             this.IsPosition = false;
             this.Symbol = strSymbol;
@@ -174,6 +176,7 @@ namespace MBTrading
             this.SellIndex = 0;
             this.AverageBuyPrice = 0;
             this.StopLoss = 0;
+            this.StopTarget = 0;
             this.CurrPL = 0;
             this.PositionsReport = false;
 
@@ -483,7 +486,7 @@ namespace MBTrading
 
 
 
-            if ((this.TempPatterns.Count == 0) || (this.TempPatterns.Count % 2500 != 0))
+            if ((this.TempPatterns.Count == 0) || (this.TempPatterns.Count % 5000 != 0))
             {
                 Pattern.Tick(mdCurrMarketData, this.lastBid, this.lastAsk, ref this.TempPatterns, this.PipsUnit);
             }
@@ -545,9 +548,12 @@ namespace MBTrading
                             if (currTodaysPatterns.Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
                             {
                                 int nDirection = currTodaysPatterns.OutcomeSimPatterns > 0 ? 1 : -1;
-                                this.OffLineBuy(nDirection == 1 ? 
-                                    (this.lastBid - 2.2 * this.PipsUnit) : 
-                                    (this.lastAsk + 2.2 * this.PipsUnit), 
+                                this.OffLineBuy(nDirection == 1 ?
+                                    this.lastBid + (this.lastBid * currTodaysPatterns.FutureMin) - this.PipsUnit : //(this.lastBid - 1000 * this.PipsUnit) : 
+                                    this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMax) + this.PipsUnit, //(this.lastAsk + 1000 * this.PipsUnit), 
+                                    nDirection == 1 ?
+                                    this.lastBid + (this.lastBid * currTodaysPatterns.FutureMax / 2) :
+                                    this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMin / 2), 
                                     10000, 
                                     nDirection > 0);
                                 this.nWhenToSellIndex = (Pattern.NumOfTicsSamples * Pattern.OutcomeInterval); //+ (new Random().Next(0, 5) * Pattern.NumOfTicsSamples);
@@ -563,10 +569,10 @@ namespace MBTrading
             {
                 this.nNumOfTicks++;
 
-                // First time trailing is triggered
+                //// First time trailing is triggered
                 //if ((!this.flag) && (this.nNumOfTicks > this.nWhenToSellIndex) &&
-                //    (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice +  3*this.PipsUnit) ||
-                //      (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 3*this.PipsUnit))))
+                //    (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice +  3 *this.PipsUnit) ||
+                //      (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 3 *this.PipsUnit))))
                 //{
                 //    this.flag = true;
                 //    this.StopLoss = this.AverageBuyPrice;
@@ -574,40 +580,43 @@ namespace MBTrading
                 //
                 //// X trailing
                 //if (this.flag && 
-                //    ((this.BuyDirection == 1) && (this.lastBid > this.StopLoss +  2*this.PipsUnit) ||
-                //     (this.BuyDirection == -1) && (this.lastAsk < this.StopLoss - 2*this.PipsUnit)))
+                //    ((this.BuyDirection == 1) && (this.lastBid > this.StopLoss +  1 *this.PipsUnit) ||
+                //     (this.BuyDirection == -1) && (this.lastAsk < this.StopLoss - 1 *this.PipsUnit)))
                 //{
-                //    this.StopLoss = (this.BuyDirection == 1) ? this.lastBid - 2 * this.PipsUnit :
-                //                                               this.lastAsk + 2 * this.PipsUnit; 
+                //    this.StopLoss = (this.BuyDirection == 1) ? this.lastBid - 1 * this.PipsUnit :
+                //                                               this.lastAsk + 1 * this.PipsUnit; 
                 //}
 
-                if (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice + 0.2 * this.PipsUnit) ||
-                    (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 0.2 * this.PipsUnit)))// this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit())
+                //if (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice + 2 * this.PipsUnit) ||
+                //    (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 2 * this.PipsUnit)))
+                if ((this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit()) || 
+                    (((this.BuyDirection == 1) && (this.lastBid > this.StopTarget)) ||
+                    ((this.BuyDirection == -1) && (this.lastAsk < this.StopTarget)))) 
+                //if (this.nNumOfTicks > this.nWhenToSellIndex)
                 {
                     Interlocked.Increment(ref NUMOFP);
                     int n = this.nNumOfTicks;
                     this.OffLineSell();
-                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}             (P:{2} | L:{3})\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
+                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit-{1}: {2}             (P:{3} | L:{4})\n", n, this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit() ? "F" : "T", (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
                 }
                 else if (((this.BuyDirection == 1) && (this.lastBid < this.StopLoss)) ||
                         ((this.BuyDirection == -1) && (this.lastAsk > this.StopLoss))) 
                 {
-                    Interlocked.Increment(ref NUMOFL);
                     int n = this.nNumOfTicks;
                     bool bbb = this.flag;
                     this.OffLineSell();
 
                     //if (bbb)
-                    //{ File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit)); }
+                    //{ Interlocked.Increment(ref NUMOFP); File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES)); }
                     //else
-                    { File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     !.!.!.: {1}             (P:{2} | L:{3})\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES)); }
+                    { Interlocked.Increment(ref NUMOFL); File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     !.!.!.: {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES)); }
                 }
             }
         }
 
         public bool flag = false;
 
-        public void OffLineBuy(double dStopLoss, int nQuantity, bool bLong)
+        public void OffLineBuy(double dStopLoss, double dStopTarget, int nQuantity, bool bLong)
         {
             Interlocked.Increment(ref NUMOFTRADES);
 
@@ -622,7 +631,7 @@ namespace MBTrading
                 this.AverageBuyPrice += pBuy.Price;
             this.AverageBuyPrice /= this.BuyPrices.Count;
             this.StopLoss = dStopLoss;
-
+            this.StopTarget = dStopTarget;
 
 
             this.OffLineIsPosition = true;
@@ -678,7 +687,9 @@ namespace MBTrading
                 prof += FixGatewayUtils.CalculateProfit(pBuy.Price, SellPrice, this.Symbol, pBuy.Quantity, this.BuyDirection == 1);
             }
             prof = prof * this.BuyDirection;
-            return (prof > com);
+
+            return false;
+            //return (prof > com);
         }
         public void ZigZagLowEvent(int nIndex, double dLastLow)
         {

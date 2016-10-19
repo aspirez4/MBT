@@ -259,7 +259,6 @@ namespace MBTrading.Entities.Indicators
                             nLastLowIndex = nShift;
                             ZigZagMap[nShift] = dLastLow;
                             nWhatLookFor = 1;
-                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
                             dLast = dLastLow;
                             nLast = 0;
@@ -291,7 +290,6 @@ namespace MBTrading.Entities.Indicators
                                 nLastLowIndex = nShift;
                                 nWhatLookFor = 1;
                                 ZigZagMap[nShift] = dLastLow;
-                                this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                                 ZigZagLowEvent(nShift, dLastLow);
                                 dLast = dLastLow;
                                 nLast = 0;
@@ -308,7 +306,6 @@ namespace MBTrading.Entities.Indicators
                             nLastLowIndex = nShift;
                             dLastLow = LowMap[nShift];
                             ZigZagMap[nShift] = dLastLow;
-                            this.ParentCandleList.ParentShare.ZigZagLowEvent(nShift, dLastLow);
                             //ZigZagLowEvent(nShift, dLastLow);
                             dLast = dLastLow;
                             nLast = 0;

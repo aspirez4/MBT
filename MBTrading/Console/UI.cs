@@ -114,14 +114,14 @@ namespace MBTrading
                                            string.Format("{0,10:0.00000}", sCurrShare.lastBid),
                                            string.Format("{0,10:0.00000}", sCurrShare.lastAsk),
                                            string.Format("{0,10:0.00000}", sCurrShare.TempPatterns.Count),
-                                           Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString())  :  (sCurrShare.BuyOrder == null ? " " : "T"),
-                                           Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) :  (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
+                                           Consts.WorkOffLineMode ? (sCurrShare.PricesQueue.Count.ToString()) : (sCurrShare.BuyOrder == null ? " " : "T"),
+                                           Consts.WorkOffLineMode ? (sCurrShare.OffLineCandleIndex.ToString()) : (sCurrShare.IsPosition ? string.Format("T{0}", sCurrShare.StopLossOrders.Count) : "  "),
                                            sCurrShare.AverageBuyPrice == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.AverageBuyPrice),
                                            sCurrShare.StopLoss == 0 ? "          " : string.Format("{0,10:0.00000}", sCurrShare.StopLoss),
                                            sCurrShare.AverageBuyPrice == 0 ? "       " : string.Format("{0,7:0}", sCurrShare.PositionQuantity),
                                            string.Format("{0,10:0.0}", sCurrShare.CurrPL),
                                            string.Format("{0,10:0.0}", sCurrShare.TotalPL),
-                                           string.Format("{0,10:0.00}", sCurrShare.Commission));
+                                           string.Format("{0,10:0}", sCurrShare.MY_TRY.Count));//sCurrShare.Commission));
             }
 
             string strSDV = string.Empty;

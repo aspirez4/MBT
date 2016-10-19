@@ -8,15 +8,24 @@ using MongoDB.Bson.Serialization.Attributes;
 using MBTrading.Utils;
 using MBTrading.Entities;
 using System.Collections.Generic;
+using System.Text;
 
 namespace MBTrading
 {
     public class Pair
     {
         public int Quantity;
+        public double LOSS;
+        public double WIN;
         public double Price;
-        public Pair (int nQuantity, double dPrice)
+        public double similarity;
+        public double predicted;
+        public Pair(int nQuantity, double dPrice, double similarity, double nWIN, double nLoss, double predicted)
     	{
+            this.predicted = predicted;
+            this.WIN = nWIN;
+            this.LOSS = nLoss;
+            this.similarity = similarity;
             this.Quantity = nQuantity;
             this.Price = dPrice;
 	    }
@@ -24,10 +33,20 @@ namespace MBTrading
 
     public class Share
     {
+        public static int LOTS_QUANTITY = 100;
+        public double LOSS = 50;
+        public double WIN = 10;
+        public static long BREAKING_POINT = 300000;
+        public double SIMILARITY = 0;
+        public static long GREATEST_LOSS_DURATION = 0;
+        public static long LOWEST_LOSS_DURATION = long.MaxValue;
+        public static long GREATEST_WIN_DURATION = 0;
         public static int NUMOFTRADES = 0;
         public static int NUMOFP = 0;
         public static int NUMOFL = 0;
-
+        public static double MY_TRY_P = 0;
+        public ConcurrentDictionary<long, Pair> MY_TRY = new ConcurrentDictionary<long, Pair>();
+            
         public bool NNActive = false;
         public int D_MilitraizedZone = 10; // 10
         public double Risk = 0;
@@ -229,14 +248,14 @@ namespace MBTrading
             #region Patterns process
             if ((this.TempPatterns.Count == 0) || (this.TempPatterns.Count % 2500 != 0))
             {
-                Pattern.Tick(mdCurrMarketData, this.lastBid, this.lastAsk, ref this.TempPatterns, this.PipsUnit);
+                Pattern.Tick(mdCurrMarketData, this.lastBid, this.lastAsk, ref this.TempPatterns, this.PipsUnit, this.Symbol, this.tickIndex);
             }
             else
             {
                 if (this.Patterns != null && this.Patterns.Count > 0)
                     Pattern.claen(this.Patterns, 0, this.Patterns.Count - 1);
 
-                this.Patterns = Pattern.BuildPatterns(this.Symbol);
+                this.Patterns = Pattern.BuildPatterns(this.Symbol, this.tickIndex);
                 this.TempPatterns = Pattern.AllPatterns[this.Symbol];
             }
             #endregion
@@ -251,7 +270,7 @@ namespace MBTrading
                     {
                         foreach (Pattern currTodaysPatterns in this.Patterns)
                         {
-                            if (currTodaysPatterns.Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
+                            if (currTodaysPatterns.Similar(this.TempPatterns[this.TempPatterns.Count - 2], out SIMILARITY))
                             {
                                 int nDirection = currTodaysPatterns.OutcomeSimPatterns > 0 ? 1 : -1;
                                 this.BuyLimitPlusStopMarket(true, //this.Patterns.First().OutcomeSimPatterns > 0,
@@ -299,7 +318,7 @@ namespace MBTrading
                 this.PositionQuantity = nQuantity;
                 this.IsLong = bIsLong;
                 this.StopLoss = dStopLoss;
-                this.BuyPrices.Add(this.tickIndex, new Pair(nQuantity, dLimit));
+                this.BuyPrices.Add(this.tickIndex, new Pair(nQuantity, dLimit, 0,0,0,0));
                 this.AverageBuyPrice = dLimit;
                 this.Commission += FixGatewayUtils.CalculateCommission(this.lastAsk, this.Symbol, this.PositionQuantity, bIsLong, true);
                 return true;
@@ -467,9 +486,14 @@ namespace MBTrading
                 }
             }
         }
+
+    
         public void OffLineUpdateCandle(MarketData mdCurrMarketData)
         {
             inc();
+
+            
+
             switch (mdCurrMarketData.DataType)
             {
                 case (MarketDataType.Bid):
@@ -484,18 +508,16 @@ namespace MBTrading
                     }
             }
 
+            // Tick!!!
+            bool bTradeWindow = Pattern.Tick(mdCurrMarketData, this.lastBid, this.lastAsk, ref this.TempPatterns, this.PipsUnit, this.Symbol, this.tickIndex);
 
 
-            if ((this.TempPatterns.Count == 0) || (this.TempPatterns.Count % 5000 != 0))
-            {
-                Pattern.Tick(mdCurrMarketData, this.lastBid, this.lastAsk, ref this.TempPatterns, this.PipsUnit);
-            }
-            else
+            if (this.TempPatterns.Count == 1000)
             {
                 if (this.Patterns != null && this.Patterns.Count > 0)
                     Pattern.claen(this.Patterns, 0, this.Patterns.Count - 1);
 
-                this.Patterns = Pattern.BuildPatterns(this.Symbol);
+                this.Patterns = Pattern.BuildPatterns(this.Symbol, this.tickIndex);
                 this.TempPatterns = Pattern.AllPatterns[this.Symbol];
 
                 #region
@@ -509,7 +531,7 @@ namespace MBTrading
                         File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format("0: {0}    {1}%    {2}\n", Patterns[0].SimPatterns.Count, (int)Patterns[0].Accuracy, Patterns[0].OutcomeSimPatterns));
                         foreach (Pattern p in Patterns[0].SimPatterns)
                         {
-                            File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format(" - {0}\n", p.OutcomePrivate));
+                            File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), string.Format(" - {0}         TickIndex: {1}\n", p.OutcomePrivate, p.StartTickIndex));
                         }
                         File.AppendAllText(string.Format("C:\\temp\\Or\\p{0}.txt", this.Symbol.Remove(3, 1)), "\n");
                     }
@@ -535,29 +557,40 @@ namespace MBTrading
             }
 
 
-
-            if (!this.OffLineIsPosition)
+            if (bTradeWindow)
             {
                 if (this.Patterns != null && this.Patterns.Count > 0)
                 {
                     if (this.TempPatterns.Count > 1 && this.TempPatterns.Last().Dimensions[0].Count == 0)
                     {
-                        int nTry = 0;
                         foreach (Pattern currTodaysPatterns in this.Patterns)
                         {
-                            if (currTodaysPatterns.Similar(this.TempPatterns[this.TempPatterns.Count - 2]))
+                            if (currTodaysPatterns.Similar(this.TempPatterns[this.TempPatterns.Count - 2], out SIMILARITY))
                             {
-                                int nDirection = currTodaysPatterns.OutcomeSimPatterns > 0 ? 1 : -1;
-                                this.OffLineBuy(nDirection == 1 ?
-                                    this.lastBid + (this.lastBid * currTodaysPatterns.FutureMin) - this.PipsUnit : //(this.lastBid - 1000 * this.PipsUnit) : 
-                                    this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMax) + this.PipsUnit, //(this.lastAsk + 1000 * this.PipsUnit), 
-                                    nDirection == 1 ?
-                                    this.lastBid + (this.lastBid * currTodaysPatterns.FutureMax / 2) :
-                                    this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMin / 2), 
-                                    10000, 
-                                    nDirection > 0);
-                                this.nWhenToSellIndex = (Pattern.NumOfTicsSamples * Pattern.OutcomeInterval); //+ (new Random().Next(0, 5) * Pattern.NumOfTicsSamples);
-                                File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("{0}: {1}",nTry++, this.tickIndex));
+                                double nWin = 1000000000;// Math.Abs(currTodaysPatterns.OutcomeSimPatterns);
+                                double nLoss = 1000000000;// (1 / ((100 - currTodaysPatterns.Accuracy) / 100) * nWin) - nWin;
+                                if (!this.OffLineIsPosition)
+                                {
+                                    this.WIN  = nWin;
+                                    this.LOSS = nLoss;
+                                    int nDirection = currTodaysPatterns.OutcomeSimPatterns > 0 ? 1 : -1;
+                                    this.OffLineBuy(nDirection == 1 ?
+                                        /*this.lastBid + (this.lastBid * currTodaysPatterns.FutureMin) - this.PipsUnit : */ (this.lastAsk - LOSS * this.PipsUnit) :
+                                        /*this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMax) + this.PipsUnit,  */ (this.lastBid + LOSS * this.PipsUnit),
+                                        nDirection == 1 ?
+                                        this.lastBid + (this.lastBid * currTodaysPatterns.FutureMax / 2) :
+                                        this.lastAsk + (this.lastAsk * currTodaysPatterns.FutureMin / 2),
+                                        LOTS_QUANTITY,
+                                        nDirection > 0);
+                                    this.nWhenToSellIndex = (Pattern.NumOfTicsSamples * Pattern.OutcomeInterval); //+ (new Random().Next(0, 5) * Pattern.NumOfTicsSamples);
+                                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("{0}%: {1}", (int)(SIMILARITY * 100), this.tickIndex));
+                                }
+                                else if (this.MY_TRY.Count < 100)
+                                {
+                                    Interlocked.Increment(ref NUMOFTRADES);
+                                    int nDirection = currTodaysPatterns.OutcomeSimPatterns > 0 ? 1 : -1;
+                                    this.MY_TRY.TryAdd(tickIndex, new Pair(nDirection, nDirection == 1 ? this.lastAsk : this.lastBid, SIMILARITY, nWin, nLoss, currTodaysPatterns.OutcomeSimPatterns));
+                                }
 
                                 break;
                             }
@@ -565,52 +598,119 @@ namespace MBTrading
                     }
                 }
             }
-            else
+            
+            if (this.OffLineIsPosition)
             {
                 this.nNumOfTicks++;
 
-                //// First time trailing is triggered
-                //if ((!this.flag) && (this.nNumOfTicks > this.nWhenToSellIndex) &&
-                //    (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice +  3 *this.PipsUnit) ||
-                //      (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 3 *this.PipsUnit))))
-                //{
-                //    this.flag = true;
-                //    this.StopLoss = this.AverageBuyPrice;
-                //}
-                //
-                //// X trailing
-                //if (this.flag && 
-                //    ((this.BuyDirection == 1) && (this.lastBid > this.StopLoss +  1 *this.PipsUnit) ||
-                //     (this.BuyDirection == -1) && (this.lastAsk < this.StopLoss - 1 *this.PipsUnit)))
-                //{
-                //    this.StopLoss = (this.BuyDirection == 1) ? this.lastBid - 1 * this.PipsUnit :
-                //                                               this.lastAsk + 1 * this.PipsUnit; 
-                //}
 
-                //if (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice + 2 * this.PipsUnit) ||
-                //    (this.BuyDirection == -1) && (this.lastAsk < this.AverageBuyPrice - 2 * this.PipsUnit)))
-                if ((this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit()) || 
-                    (((this.BuyDirection == 1) && (this.lastBid > this.StopTarget)) ||
-                    ((this.BuyDirection == -1) && (this.lastAsk < this.StopTarget)))) 
-                //if (this.nNumOfTicks > this.nWhenToSellIndex)
+
+
+
+
+
+                 if (this.nNumOfTicks > Pattern.NumOfTicsSamples * Pattern.OutcomeInterval)
+                 {
+                    int n = this.nNumOfTicks;
+                    this.OffLineSell();
+                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     Pips ?+?- {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
+                }
+                //if (this.OffLineCheackIsProffit())
+                //{
+                //    int n = this.nNumOfTicks;
+                //    if (GREATEST_WIN_DURATION < n)
+                //        GREATEST_WIN_DURATION = n;
+                //    this.OffLineSell();
+                //    Interlocked.Increment(ref NUMOFP);
+                //    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     Pips Profit : {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
+                //}
+                //else if ((this.nNumOfTicks > BREAKING_POINT) || 
+                //        ((this.nNumOfTicks > Pattern.NumOfTicsSamples * Pattern.OutcomeInterval) &&
+                //            (((this.BuyDirection == 1) && (this.lastBid < this.StopLoss)) ||
+                //            ((this.BuyDirection == -1) && (this.lastAsk > this.StopLoss)))))
+                //{
+                //    int n = this.nNumOfTicks;
+                //    if (GREATEST_LOSS_DURATION < n)
+                //        GREATEST_LOSS_DURATION = n;
+                //    if (LOWEST_LOSS_DURATION > n)
+                //        LOWEST_LOSS_DURATION = n;
+                //    this.OffLineSell();
+                //    Interlocked.Increment(ref NUMOFL); 
+                //    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     Pips Loss {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
+                //}
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            double ddd = 0;
+            foreach (long k in this.MY_TRY.Keys)
+            {
+                Pair p = this.MY_TRY[k];
+                ddd += p.Quantity * FixGatewayUtils.CalculateProfit(p.Price, (p.Quantity == 1 ? this.lastBid : this.lastAsk), this.Symbol, Share.LOTS_QUANTITY, p.Quantity == 1);
+                if (this.tickIndex - k > Pattern.NumOfTicsSamples * Pattern.OutcomeInterval)
                 {
+                    double dPL = p.Quantity * FixGatewayUtils.CalculateProfit(p.Price, (p.Quantity == 1 ? this.lastBid : this.lastAsk), this.Symbol, Share.LOTS_QUANTITY, p.Quantity == 1);
+                    secureMY_TRY_P_Add(dPL);
                     Interlocked.Increment(ref NUMOFP);
-                    int n = this.nNumOfTicks;
-                    this.OffLineSell();
-                    File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit-{1}: {2}             (P:{3} | L:{4})\n", n, this.nNumOfTicks > this.nWhenToSellIndex && OffLineCheackIsProffit() ? "F" : "T", (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES));
+                    secureLog("C:\\temp\\Or\\try.txt", string.Format("{0}   Pips: {1,10:0.000}  ({2,2})       predictedPips: {3,10:0.000}        sim: {4}%   ticks: {5}\n", 
+                        k,
+                        ((p.Quantity == 1 ? this.lastBid : this.lastAsk) - p.Price) / this.PipsUnit, 
+                        p.Quantity, 
+                        p.predicted, 
+                        (int)(100*p.similarity),
+                        this.tickIndex - k));
+                    secureLog("C:\\temp\\Or\\balance.txt", string.Format("{0},  {1},  {2}\n", QuoteUtils.FileCounter, Program.AccountBallance, Program.AccountBallance + MY_TRY_P));
+                    this.MY_TRY.TryRemove(k, out p);
+                    if (GREATEST_WIN_DURATION < this.tickIndex - k)
+                        GREATEST_WIN_DURATION = this.tickIndex - k;
                 }
-                else if (((this.BuyDirection == 1) && (this.lastBid < this.StopLoss)) ||
-                        ((this.BuyDirection == -1) && (this.lastAsk > this.StopLoss))) 
-                {
-                    int n = this.nNumOfTicks;
-                    bool bbb = this.flag;
-                    this.OffLineSell();
-
-                    //if (bbb)
-                    //{ Interlocked.Increment(ref NUMOFP); File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     profit: {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES)); }
-                    //else
-                    { Interlocked.Increment(ref NUMOFL); File.AppendAllText(string.Format("C:\\temp\\Or\\o{0}.txt", this.Symbol.Remove(3, 1)), string.Format("   {0}     !.!.!.: {1}             (P:{2}% | L:{3}%)\n", n, (this.BuyDirection * (this.SellPrice - this.AverageBuyPrice)) / this.PipsUnit, (int)NUMOFP * 100 / NUMOFTRADES, (int)NUMOFL * 100 / NUMOFTRADES)); }
-                }
+                //if (((p.Quantity == 1) && (this.lastBid > p.Price + p.WIN * this.PipsUnit)) ||
+                //    ((p.Quantity != 1) && (this.lastAsk < p.Price - p.WIN * this.PipsUnit)))
+                //{
+                //    double dPL = p.Quantity * FixGatewayUtils.CalculateProfit(p.Price, (p.Quantity == 1 ? this.lastBid : this.lastAsk), this.Symbol, LOTS_QUANTITY, p.Quantity == 1);
+                //    secureMY_TRY_P_Add(dPL);
+                //    Interlocked.Increment(ref NUMOFP);
+                //    secureLog("C:\\temp\\Or\\try.txt", string.Format("Pips: {0}  ({1,2})       similarity: {2}%        ticks: {3}\n", p.WIN, p.Quantity, (int)(p.similarity * 100), this.tickIndex - k));
+                //    secureLog("C:\\temp\\Or\\balance.txt", string.Format("{0},  {1},  {2}\n", QuoteUtils.FileCounter, Program.AccountBallance, Program.AccountBallance + MY_TRY_P));
+                //    this.MY_TRY.TryRemove(k, out p);
+                //    if (GREATEST_WIN_DURATION < this.tickIndex - k)
+                //        GREATEST_WIN_DURATION = this.tickIndex - k;
+                //}
+                //else if ((this.tickIndex - k > BREAKING_POINT) || 
+                //        ((this.tickIndex - k > Pattern.NumOfTicsSamples * Pattern.OutcomeInterval) &&
+                //            (((p.Quantity == 1) && (this.lastBid < p.Price - p.LOSS * this.PipsUnit)) ||
+                //             ((p.Quantity != 1) && (this.lastAsk > p.Price + p.LOSS * this.PipsUnit)))))
+                //{
+                //    double dPL = p.Quantity * FixGatewayUtils.CalculateProfit(p.Price, (p.Quantity == 1 ? this.lastBid : this.lastAsk), this.Symbol, LOTS_QUANTITY, p.Quantity == 1);
+                //    secureMY_TRY_P_Add(dPL);
+                //    Interlocked.Increment(ref NUMOFL);
+                //    secureLog("C:\\temp\\Or\\try.txt", string.Format("Pips: -{0} ({1,2})       similarity: {2}%        ticks: {3}\n", p.LOSS, p.Quantity, (int)(p.similarity * 100), this.tickIndex - k));
+                //    secureLog("C:\\temp\\Or\\balance.txt", string.Format("{0},  {1},  {2}\n", QuoteUtils.FileCounter, Program.AccountBallance, Program.AccountBallance + MY_TRY_P));
+                //    this.MY_TRY.TryRemove(k, out p);
+                //    if (GREATEST_LOSS_DURATION < this.tickIndex - k)
+                //        GREATEST_LOSS_DURATION = this.tickIndex - k;
+                //    if (LOWEST_LOSS_DURATION > this.tickIndex - k)
+                //        LOWEST_LOSS_DURATION = this.tickIndex - k;
+                //}
             }
         }
 
@@ -625,7 +725,7 @@ namespace MBTrading
             this.StartReversalIndex = 0;
             this.OffLineBuyIndex = this.OffLineBuyIndex == 0 ? this.OffLineCandleIndex : this.OffLineBuyIndex;
 
-            this.BuyPrices.Add(this.OffLineCandleIndex, new Pair(nQuantity, bLong ? this.lastAsk : this.lastBid));
+            this.BuyPrices.Add(this.OffLineCandleIndex, new Pair(nQuantity, bLong ? this.lastAsk : this.lastBid, 0,0,0,0));
             this.AverageBuyPrice = 0;
             foreach (Pair pBuy in this.BuyPrices.Values)
                 this.AverageBuyPrice += pBuy.Price;
@@ -674,55 +774,53 @@ namespace MBTrading
             this.BuyPrices.Clear();
             this.StopLoss = 0;
             this.PositionQuantity = 0;
+            secureLog("C:\\temp\\Or\\balance.txt", string.Format("{0},  {1},  {2}\n", QuoteUtils.FileCounter, Program.AccountBallance, Program.AccountBallance + MY_TRY_P));
             File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
                 string.Format("0;{0};{1};{2};{3}\n", this.Symbol, this.SellPrice, this.BuyDirection, this.OffLineCandleIndex));
         }
         public bool OffLineCheackIsProffit()
         {
-            double com = 2 * FixGatewayUtils.CalculateCommission(this.SellPrice, this.Symbol, this.PositionQuantity, this.BuyDirection == 1, false);
-            double prof = 0;
-            double SellPrice = (this.BuyDirection == 1 ? this.lastBid : this.lastAsk) - (this.BuyDirection * this.PipsUnit * nForcedSpread);
-            foreach (Pair pBuy in this.BuyPrices.Values)
-            {
-                prof += FixGatewayUtils.CalculateProfit(pBuy.Price, SellPrice, this.Symbol, pBuy.Quantity, this.BuyDirection == 1);
-            }
-            prof = prof * this.BuyDirection;
-
-            return false;
+            //double com = 2 * FixGatewayUtils.CalculateCommission(this.SellPrice, this.Symbol, this.PositionQuantity, this.BuyDirection == 1, false);
+            //double prof = 0;
+            //double SellPrice = (this.BuyDirection == 1 ? this.lastBid : this.lastAsk) - (this.BuyDirection * this.PipsUnit * nForcedSpread);
+            //foreach (Pair pBuy in this.BuyPrices.Values)
+            //{
+            //    prof += FixGatewayUtils.CalculateProfit(pBuy.Price, SellPrice, this.Symbol, pBuy.Quantity, this.BuyDirection == 1);
+            //}
+            //prof = prof * this.BuyDirection;
+            //return prof > WIN;
             //return (prof > com);
+
+            double dPL = this.BuyDirection * FixGatewayUtils.CalculateProfit(this.AverageBuyPrice, (this.BuyDirection == 1 ? this.lastBid : this.lastAsk), this.Symbol, Program.Quantity, this.BuyDirection == 1);
+
+            return (((this.BuyDirection == 1) && (this.lastBid > this.AverageBuyPrice + WIN * this.PipsUnit)) ||
+                    ((this.BuyDirection != 1) && (this.lastAsk < this.AverageBuyPrice - WIN * this.PipsUnit)));
         }
-        public void ZigZagLowEvent(int nIndex, double dLastLow)
+
+
+        public static Object o = new Object();
+        public static void secureMY_TRY_P_Add(double dAddValue)
         {
-            //double dPossibleStopLoss = 0;
-
-            //if (this.IsPosition)
-            //{
-            //    if ((this.StopLoss < dLastLow) && (this.CandleIndex - this.BuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
-            //    {
-            //        this.StopLoss = dLastLow;
-            //    }
-            //}
-            //else if ((this.OffLineIsPosition) && (this.CrossEMALine))
-            //{
-            //    for (int nZigZagIndex = nIndex - 1; nZigZagIndex > 0; nZigZagIndex--)
-            //    {
-            //        if (this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] != 0)
-            //        {
-            //            dPossibleStopLoss = this.CandlesList.ZigZag5.ZigZagMap[nZigZagIndex] - 4 * this.PipsUnit;
-            //            nIndex = nZigZagIndex;
-            //            break;
-            //        }
-            //    }
-
-            //    if ((this.StopLoss < dPossibleStopLoss) && (this.CandlesList.Candles[this.CandlesList.CountDec - 1].R_Low > dPossibleStopLoss) && (this.OffLineCandleIndex - this.OffLineBuyIndex > this.CandlesList.ZigZag5.Length - nIndex))
-            //    {
-            //        //this.StopLoss = dPossibleStopLoss;
-            //        //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-            //        //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex));
-            //        //File.AppendAllText(string.Format("C:\\Users\\Or\\Projects\\MBTrading - Graph\\WindowsFormsApplication1\\bin\\x64\\Debug\\b\\o{1}.txt", Consts.FilesPath, this.Symbol.Remove(3, 1)),
-            //        //    string.Format("4;{0};{1};{2}\n", this.Symbol, this.StopLoss, this.OffLineCandleIndex - (this.CandlesList.ZigZag5.Length - nIndex)));
-            //    }
-            //}
+            lock (o)
+            {
+                MY_TRY_P += dAddValue;
+            }
+        }
+        public static void secureLog(string strFileName, string strText)
+        {
+            bool bException = true;
+            while (bException)
+            {
+                bException = false;
+                try
+                {
+                    File.AppendAllText(strFileName, strText);
+                }
+                catch
+                {
+                    bException = true;
+                }
+            }
         }
     }
 }

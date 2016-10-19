@@ -11,19 +11,19 @@ namespace MBTrading.Entities
 {
     public class Pattern
     {
-        public static int OutcomeInterval = 4; // 1
+        public static int OutcomeInterval = 50; // 1
         public static bool TicsDirected = true;
-        public static int NumOfTicsSamples = 500;
+        public static int NumOfTicsSamples = 25;
         public static double SimilarityRate = 0.70;  // 0.7
-        public static double SimilarityRateSteps = 0;  // 0.2
+        public static double SimilarityRateSteps = 0.50;  // 0.2
         public static Dictionary<String, List<Pattern>> AllPatterns;
         /////////////////////////////////////////
         public static double PatternPopularityRatingWeight = 0.6;
         public static double PatternAccuracyRatingWeight = 0.35;
         public static double PatternProfitRatingWeight = 0.05;
-        public static double PatternProfitThreshold = 2.5;
+        public static double PatternProfitThreshold = 4;
         public static double PatternAccuracyThreshold = 80;
-        public static double PatternPopularityThreshold = 10;
+        public static double PatternPopularityThreshold = 20;
 
         static Pattern()
         {
@@ -61,9 +61,11 @@ namespace MBTrading.Entities
         public double OutcomeSimPatterns;
         public double FutureMin;
         public double FutureMax;
+        public long StartTickIndex;
 
         public Pattern()
         {
+            this.StartTickIndex = 0;
             this.FutureMax = 0;
             this.FutureMin = 0;
             this.PatternStartHour = null;
@@ -131,71 +133,63 @@ namespace MBTrading.Entities
                 }
             }
         }
-
-        public static void Tick(MarketData md, double dLastBid, double dLastAsk, ref List<Pattern> lstSharePatterns, double dPipsUnit)
+        public static bool Tick(MarketData md, double dLastBid, double dLastAsk, ref List<Pattern> lstSharePatterns, double dPipsUnit, string strSymbol, long lTickIndex)
         {
             int nSmallestDimension = TicsDirected ? 0 : 1;
             double dValue = (dLastBid + dLastAsk) / 2;
-            if (md.DataType == MarketDataType.Volume)
-            {
-                dValue = md.Price;
-            }
 
-            if (dValue != -1)
-            {
-                Pattern currPattern = lstSharePatterns[lstSharePatterns.Count - 1];
+            Pattern currPattern = lstSharePatterns[lstSharePatterns.Count - 1];
 
-                foreach (int currKey in currPattern.Dimensions.Keys)
+            foreach (int currKey in currPattern.Dimensions.Keys)
+            {
+                DimensionsData currDimension = currPattern.Dimensions[currKey];
+
+                if (currPattern.PatternStartHour == null)
+                    currPattern.PatternStartHour = md.Time.HourPrimery;
+
+                if (currDimension.Weight == 0)
+                    continue;
+
+              
+
+
+
+                
+                if (currKey != 0)
                 {
-                    DimensionsData currDimension = currPattern.Dimensions[currKey];
-
-                    if (currPattern.PatternStartHour == null)
-                        currPattern.PatternStartHour = md.Time.HourPrimery;
-
-                    if (currDimension.Weight == 0)
-                        continue;
-
-                  
-
-
-
-                    
-                    if (currKey != 0)
+                    if ((md.Time.MinutePrimery % currKey == 0) || (md.Time.MinutePrimery / currKey != currDimension.Count - 1) || (currDimension.Count == 0))
                     {
-                        if ((md.Time.MinutePrimery % currKey == 0) || (md.Time.MinutePrimery / currKey != currDimension.Count - 1) || (currDimension.Count == 0))
+                        int nDimmensionCount = currDimension.Count;
+                        for (int nCount = 0; nCount < ((md.Time.MinutePrimery / currKey) - nDimmensionCount) + 1; nCount++)
                         {
-                            int nDimmensionCount = currDimension.Count;
-                            for (int nCount = 0; nCount < ((md.Time.MinutePrimery / currKey) - nDimmensionCount) + 1; nCount++)
-                            {
-                                Params pNewParam = currDimension.Data.ElementAt((md.Time.MinutePrimery / currKey) - nCount);
-                                pNewParam.ParamsStartMinute = md.Time.MinutePrimery;
-                                pNewParam.Open = dValue;
-                                pNewParam.High = dValue;
-                                pNewParam.Low = dValue;
-                                pNewParam.Close = dValue;
-                                currDimension.Count++;
-                            }
+                            Params pNewParam = currDimension.Data.ElementAt((md.Time.MinutePrimery / currKey) - nCount);
+                            pNewParam.ParamsStartMinute = md.Time.MinutePrimery;
+                            pNewParam.Open = dValue;
+                            pNewParam.High = dValue;
+                            pNewParam.Low = dValue;
+                            pNewParam.Close = dValue;
+                            currDimension.Count++;
                         }
-
-                        Params pLast = currDimension.Data.ElementAt(md.Time.MinutePrimery / currKey);
-                        pLast.Close = dValue;
-                        if (pLast.High < dValue)
-                            pLast.High = dValue;
-                        if (pLast.Low > dValue)
-                            pLast.Low = dValue;
-                    }
-                    else if (TicsDirected)
-                    {
-                        Params pNewParam = new Params();
-                        pNewParam.ParamsStartMinute = md.Time.MinutePrimery;
-                        pNewParam.Open = dValue;
-                        pNewParam.High = dValue;
-                        pNewParam.Low = dValue;
-                        pNewParam.Close = dValue;
-                        currDimension.Count++;
-                        currDimension.Data.Add(pNewParam);
                     }
 
+                    Params pLast = currDimension.Data.ElementAt(md.Time.MinutePrimery / currKey);
+                    pLast.Close = dValue;
+                    if (pLast.High < dValue)
+                        pLast.High = dValue;
+                    if (pLast.Low > dValue)
+                        pLast.Low = dValue;
+                }
+                else if (TicsDirected)
+                {
+                    Params pNewParam = new Params();
+                    pNewParam.ParamsStartMinute = md.Time.MinutePrimery;
+                    pNewParam.Open = dValue;
+                    pNewParam.High = dValue;
+                    pNewParam.Low = dValue;
+                    pNewParam.Close = dValue;
+                    currDimension.Count++;
+                    currDimension.Data.Add(pNewParam);
+                }
 
 
 
@@ -203,62 +197,68 @@ namespace MBTrading.Entities
 
 
 
-                    if ((!TicsDirected && currPattern.PatternStartHour != md.Time.HourPrimery) ||
-                      (TicsDirected && currPattern.Dimensions[nSmallestDimension].Data.Count == NumOfTicsSamples))
+
+                if ((!TicsDirected && currPattern.PatternStartHour != md.Time.HourPrimery) ||
+                  (TicsDirected && currPattern.Dimensions[nSmallestDimension].Data.Count == NumOfTicsSamples))
+                {
+                    // Complete uncompleted data
+                    foreach (DimensionsData lastDimension in currPattern.Dimensions.Values)
                     {
-                        // Complete uncompleted data
-                        foreach (DimensionsData lastDimension in currPattern.Dimensions.Values)
+                        if (lastDimension.Weight == 0)
+                            continue;
+
+                        for (int nFillCounter = lastDimension.Count; nFillCounter < lastDimension.Data.Count; nFillCounter++)
                         {
-                            if (lastDimension.Weight == 0)
-                                continue;
-
-                            for (int nFillCounter = lastDimension.Count; nFillCounter < lastDimension.Data.Count; nFillCounter++)
-                            {
-                                double dLastClose = lastDimension.Data[nFillCounter - 1].Close;
-                                lastDimension.Data[nFillCounter].Open = dLastClose;
-                                lastDimension.Data[nFillCounter].High = dLastClose;
-                                lastDimension.Data[nFillCounter].Low = dLastClose;
-                                lastDimension.Data[nFillCounter].Close = dLastClose;
-                                lastDimension.Count++;
-                            }
+                            double dLastClose = lastDimension.Data[nFillCounter - 1].Close;
+                            lastDimension.Data[nFillCounter].Open = dLastClose;
+                            lastDimension.Data[nFillCounter].High = dLastClose;
+                            lastDimension.Data[nFillCounter].Low = dLastClose;
+                            lastDimension.Data[nFillCounter].Close = dLastClose;
+                            lastDimension.Count++;
                         }
-
-                        // If there is more patterns than Outcome interval - Calculate outcomes
-                        if (lstSharePatterns.Count > Pattern.OutcomeInterval)
-                        {
-                            Pattern pToFinishilize = lstSharePatterns[lstSharePatterns.Count - (Pattern.OutcomeInterval + 1)];
-                            for (int nFuture = Pattern.OutcomeInterval; nFuture > 0; nFuture--)
-                                pToFinishilize.FutureDimensions.Add(lstSharePatterns[lstSharePatterns.Count - nFuture].Dimensions);
-                            List<Params> futureOneMinuteData = lstSharePatterns[lstSharePatterns.Count - 1].Dimensions[nSmallestDimension].Data;
-                            pToFinishilize.OutcomePrivate = (((futureOneMinuteData[futureOneMinuteData.Count - 5].Close +
-                                                               futureOneMinuteData[futureOneMinuteData.Count - 4].Close +
-                                                               futureOneMinuteData[futureOneMinuteData.Count - 3].Close +
-                                                               futureOneMinuteData[futureOneMinuteData.Count - 2].Close +
-                                                               futureOneMinuteData[futureOneMinuteData.Count - 1].Close) / 5) -
-                                                               pToFinishilize.Dimensions[nSmallestDimension].Data.Last().LastPrice) / dPipsUnit;
-                        }
-
-                        // Transform all data to PercentChange data
-                        Pattern.transform(currPattern, TicsDirected);
-
-                        // Add next pattern and update references
-                        currPattern = new Pattern();
-                        currDimension = currPattern.Dimensions[currKey];
-                        lstSharePatterns.Add(currPattern);
                     }
+
+                    // If there is more patterns than Outcome interval - Calculate outcomes
+                    if (lstSharePatterns.Count > Pattern.OutcomeInterval)
+                    {
+                        Pattern pToFinishilize = lstSharePatterns[lstSharePatterns.Count - (Pattern.OutcomeInterval + 1)];
+                        for (int nFuture = Pattern.OutcomeInterval; nFuture > 0; nFuture--)
+                            pToFinishilize.FutureDimensions.Add(lstSharePatterns[lstSharePatterns.Count - nFuture].Dimensions);
+                        List<Params> futureOneMinuteData = lstSharePatterns[lstSharePatterns.Count - 1].Dimensions[nSmallestDimension].Data;
+                        pToFinishilize.OutcomePrivate = (((futureOneMinuteData[futureOneMinuteData.Count - 5].Close +
+                                                           futureOneMinuteData[futureOneMinuteData.Count - 4].Close +
+                                                           futureOneMinuteData[futureOneMinuteData.Count - 3].Close +
+                                                           futureOneMinuteData[futureOneMinuteData.Count - 2].Close +
+                                                           futureOneMinuteData[futureOneMinuteData.Count - 1].Close) / 5) -
+                                                           pToFinishilize.Dimensions[nSmallestDimension].Data.Last().LastPrice) / dPipsUnit;
+                    }
+
+                    // Transform all data to PercentChange data
+                    Pattern.transform(currPattern, TicsDirected);
+
+                    // Add next pattern and update references
+                    currPattern = new Pattern();
+                    currDimension = currPattern.Dimensions[currKey];
+                    lstSharePatterns.Add(currPattern);
+                    currPattern.StartTickIndex = lTickIndex;
+                    return true;
                 }
             }
+
+            return false;
         }
 
-        public static List<Pattern> BuildPatterns(String strSymbol)
+        public static List<Pattern> BuildPatterns(String strSymbol, long lTickIndex)
         {
+            double dTemp;
+
             Parallel.ForEach(Pattern.AllPatterns[strSymbol], basePattern =>
             {
                 basePattern.OutcomeSimPatterns = 0;
 
                 Parallel.ForEach(Pattern.AllPatterns[strSymbol], currPattern =>
                 {
-                    if (!basePattern.Equals(currPattern) && basePattern.Similar(currPattern))
+                    if (!basePattern.Equals(currPattern) && basePattern.Similar(currPattern, out dTemp))
                     {
                         basePattern.SimPatterns.Add(currPattern);
                         basePattern.OutcomeSimPatterns += currPattern.OutcomePrivate;
@@ -286,6 +286,7 @@ namespace MBTrading.Entities
             List<Pattern> lstToReturn = relex(strSymbol, 5);  
             List<Pattern> lstNew = new List<Pattern>();
             lstNew.Add(new Pattern());
+            lstNew[0].StartTickIndex = lTickIndex;
             Pattern.AllPatterns[strSymbol] = lstNew;
 
             GC.Collect();
@@ -338,45 +339,49 @@ namespace MBTrading.Entities
                 }
             });
 
+            // Sort by patterns ratings
+            lstToRelex.Sort((p1, p2) => p2.SimPatterns.Count - p1.SimPatterns.Count);
+            lstToRelex.Sort((p1, p2) => p2.Rating - p1.Rating);
+
             for (int nIndex = 0; nIndex < nWantedSize; nIndex++)
             {
-                lstToRelex.Sort((p1, p2) => p2.Rating - p1.Rating);
-
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                double dlast = 0;
-                double dlast1 = 0;
-                double dMin = double.MaxValue;
-                double dMax = double.MinValue;
-                foreach (Pattern ppp in lstToRelex[nIndex].SimPatterns)
-                {
-                    if (ppp.Dimensions != null && ppp.FutureDimensions != null)
-                    {
-                        foreach (Params d in ppp.Dimensions[0].Data)
-                        {
-                            File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), string.Format("{0:0.000000000},", d.Close));
-                        }
-                        File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), ",x,");
-                        foreach (ConcurrentDictionary<int, DimensionsData> d in ppp.FutureDimensions)
-                        {
-                            foreach (Params dd in d[0].Data)
-                            {
-                                if (dMin > dd.Close + dlast)
-                                    dMin = dd.Close + dlast;
-                                if (dMax < dd.Close + dlast)
-                                    dMax = dd.Close + dlast;
-                                File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), string.Format("{0:0.000000000},", dd.Close + dlast));
-                                dlast1 = dd.Close;
-                            }
-                            dlast = dlast1;
-                        }
-                        File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), "\n");
-                        lstToRelex[nIndex].FutureMax = dMax;
-                        lstToRelex[nIndex].FutureMin = dMin;
-                    }
-                }
-                File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), "\n");
+                //StringBuilder strForFile = new StringBuilder("\n");
+                //foreach (Pattern ppp in lstToRelex[nIndex].SimPatterns)
+                //{
+                //    double dlast = 0;
+                //    double dlast1 = 0;
+                //    double dMin = double.MaxValue;
+                //    double dMax = double.MinValue;
+                //    if (ppp.Dimensions != null && ppp.FutureDimensions != null)
+                //    {
+                //        foreach (Params d in ppp.Dimensions[0].Data)
+                //        {
+                //            strForFile.Append(string.Format("{0:0.000000000},", d.Close));
+                //        }
+                //        strForFile.Append(",x,");
+                //        foreach (ConcurrentDictionary<int, DimensionsData> d in ppp.FutureDimensions)
+                //        {
+                //            foreach (Params dd in d[0].Data)
+                //            {
+                //                if (dMin > dd.Close + dlast)
+                //                    dMin = dd.Close + dlast;
+                //                if (dMax < dd.Close + dlast)
+                //                    dMax = dd.Close + dlast;
+                //                strForFile.Append(string.Format("{0:0.000000000},", dd.Close + dlast));
+                //                dlast1 = dd.Close + dlast;
+                //            }
+                //            dlast = dlast1;
+                //        }
+                //        strForFile.Append("\n");
+                //        lstToRelex[nIndex].FutureMax = dMax;
+                //        lstToRelex[nIndex].FutureMin = dMin;
+                //    }
+                //}
+                //File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), strForFile.ToString());
+                //File.AppendAllText(string.Format("C:\\temp\\Or\\x{0}.txt", strSymbol.Remove(3, 1)), "\n");
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -403,32 +408,21 @@ namespace MBTrading.Entities
         public static void claen(List<Pattern> lstToClean, int nStartIndex, int nEndIndex)
         {
             Parallel.For(nStartIndex, nEndIndex, nIndex =>
-            //for (int nIndex = nStartIndex; nIndex <= nEndIndex; nIndex++)
             {
                 lstToClean[nIndex].claen();
             });
         }
         public void claen()
         {
-            //if (this.Dimensions != null)
-            //{
-            //    foreach (DimensionsData d in this.Dimensions.Values)
-            //        d.Data = null;
-            //}
-            //if (this.FutureDimensions != null)
-            //{
-            //    foreach (DimensionsData d in this.FutureDimensions.Values)
-            //        d.Data = null;
-            //}
-
             this.FutureDimensions.Clear();
             this.Dimensions = null;
-            //this.FutureDimensions = null;
             this.SimPatterns = null;
             this.PatternStartHour = null;
         }
-        public bool Similar(Pattern pOther)
+        public bool Similar(Pattern pOther, out double dSimilarity)
         {
+            dSimilarity = 0;
+
             foreach (int nCurrDimension in this.Dimensions.Keys)
             {
                 DimensionsData a = this.Dimensions[nCurrDimension];
@@ -447,12 +441,10 @@ namespace MBTrading.Entities
                                     //0.0 * (Math.Abs(Pattern.PercentChange(a.Data[nIndex].Low, b.Data[nIndex].Low))) +
                                     1.0 * (Math.Abs(Pattern.PercentChange(a.Data[nIndex].Close, b.Data[nIndex].Close))));
 
-                    if ((1 - dCurr) < Pattern.SimilarityRateSteps)
-                        return false;
-
                     a.Similarity += (1 - dCurr);
+                    if (a.Similarity / (nIndex + 1) < Pattern.SimilarityRateSteps)
+                        return false;
                 }
-
 
                 a.Similarity /= a.Data.Count;
             }
@@ -460,6 +452,8 @@ namespace MBTrading.Entities
             double dTotal = 0;
             foreach (DimensionsData dCurrDimension in this.Dimensions.Values)
                 dTotal += (dCurrDimension.Similarity * dCurrDimension.Weight);
+
+            dSimilarity = dTotal;
 
             if (dTotal > Pattern.SimilarityRate)
                 return true;
